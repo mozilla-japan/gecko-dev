@@ -424,6 +424,7 @@ nsWindow::nsWindow()
     mHandleTouchEvent    = false;
 #endif
     mIsDragPopup         = false;
+    mIsX11Display     = GDK_IS_X11_DISPLAY(gdk_display_get_default());
 
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
@@ -1525,7 +1526,7 @@ nsWindow::UpdateClientOffset()
 {
     PROFILER_LABEL("nsWindow", "UpdateClientOffset", js::ProfileEntry::Category::GRAPHICS);
 
-    if (!mIsTopLevel || !mShell || !mGdkWindow ||
+    if (!mIsTopLevel || !mShell || !mGdkWindow || !mIsX11Display ||
         gtk_window_get_window_type(GTK_WINDOW(mShell)) == GTK_WINDOW_POPUP) {
         mClientOffset = nsIntPoint(0, 0);
         return;
@@ -1956,7 +1957,7 @@ nsWindow::HasPendingInputEvent()
 #ifdef MOZ_X11
     XEvent ev;
     GdkDisplay* gdkDisplay = gdk_display_get_default();
-    if (GDK_IS_X11_DISPLAY(gdkDisplay)) {
+    if (mIsX11Display) {
         Display *display = GDK_DISPLAY_XDISPLAY(gdkDisplay);
         haveEvent =
             XCheckMaskEvent(display,
@@ -2586,8 +2587,7 @@ nsWindow::OnMotionNotifyEvent(GdkEventMotion *aEvent)
 #ifdef MOZ_X11
     XEvent xevent;
 
-    bool isX11Display = GDK_IS_X11_DISPLAY(gdk_display_get_default());
-    if (isX11Display) {
+    if (mIsX11Display) {
         while (XPending (GDK_WINDOW_XDISPLAY(aEvent->window))) {
             XEvent peeked;
             XPeekEvent (GDK_WINDOW_XDISPLAY(aEvent->window), &peeked);
@@ -3882,7 +3882,8 @@ nsWindow::Create(nsIWidget* aParent,
             // Similarly double buffering is controlled by the window's owning
             // widget.  Disable double buffering for painting directly to the
             // X Window.
-            gtk_widget_set_double_buffered(widgets[i], FALSE);
+            if (mIsX11Display)
+                gtk_widget_set_double_buffered(widgets[i], FALSE);
         }
 
         // We create input contexts for all containers, except for
@@ -3945,7 +3946,7 @@ nsWindow::Create(nsIWidget* aParent,
         Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, false);
 
 #ifdef MOZ_X11
-    if (mGdkWindow) {
+    if (mIsX11Display && mGdkWindow) {
       mXDisplay = GDK_WINDOW_XDISPLAY(mGdkWindow);
       mXWindow = gdk_x11_window_get_xid(mGdkWindow);
 
@@ -3993,7 +3994,7 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
 
 #ifdef MOZ_X11
   GdkDisplay *display = gdk_display_get_default();
-  if (GDK_IS_X11_DISPLAY(display)) {
+  if (mIsX11Display) {
       XClassHint *class_hint = XAllocClassHint();
       if (!class_hint) {
         free(res_name);
@@ -5430,9 +5431,9 @@ draw_window_of_widget(GtkWidget *widget, GdkWindow *aWindow, cairo_t *cr)
         if (!window) {
             NS_WARNING("Cannot get nsWindow from GtkWidget");
         }
-        else {      
-            cairo_save(cr);      
-            gtk_cairo_transform_to_window(cr, widget, aWindow);  
+        else {
+            cairo_save(cr);
+            gtk_cairo_transform_to_window(cr, widget, aWindow);
             // TODO - window->OnExposeEvent() can destroy this or other windows,
             // do we need to handle it somehow?
             window->OnExposeEvent(cr);
@@ -6455,16 +6456,29 @@ nsWindow::GetDrawTarget(const nsIntRegion& aRegion)
 
 #ifdef MOZ_X11
 #  ifdef MOZ_HAVE_SHMIMAGE
-  if (nsShmImage::UseShm()) {
+  if (mIsX11Display && nsShmImage::UseShm()) {
     dt = nsShmImage::EnsureShmImage(size,
                                     mXDisplay, mXVisual, mXDepth,
                                     mShmImage);
   }
 #  endif  // MOZ_HAVE_SHMIMAGE
   if (!dt) {
-    RefPtr<gfxXlibSurface> surf = new gfxXlibSurface(mXDisplay, mXWindow, mXVisual, size);
-    if (!surf->CairoStatus()) {
-      dt = gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(surf.get(), surf->GetSize());
+    if (mIsX11Display) {
+      RefPtr<gfxXlibSurface> surf = new gfxXlibSurface(mXDisplay, mXWindow, mXVisual, size);
+      if (!surf->CairoStatus()) {
+        dt = gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(surf.get(), surf->GetSize());
+      }
+    } else {
+      cairo_t *cr = gdk_cairo_create(mGdkWindow);
+      cairo_surface_t *csurf = cairo_get_target(cr);
+      if (cairo_surface_status(csurf) == CAIRO_STATUS_SUCCESS) {
+        RefPtr<gfxASurface> surf = gfxASurface::Wrap(csurf, size);
+        if (!surf->CairoStatus()) {
+          dt = gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(surf.get(), surf->GetSize());
+        }
+      } else {
+        NS_NOTREACHED("Missing cairo target?");
+      }
     }
   }
 #endif // MOZ_X11

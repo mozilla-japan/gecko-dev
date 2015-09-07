@@ -3670,8 +3670,6 @@ nsWindow::Create(nsIWidget* aParent,
                 // ... but when the window manager offers focus through
                 // WM_TAKE_FOCUS, focus is requested on the parent window.
                 gtk_widget_realize(mShell);
-                gdk_window_add_filter(gtk_widget_get_window(mShell),
-                                      popup_take_focus_filter, nullptr); 
 #endif
             }
 
@@ -3744,6 +3742,10 @@ nsWindow::Create(nsIWidget* aParent,
 
         // the drawing window
         mGdkWindow = gtk_widget_get_window(eventWidget);
+
+        if (mWindowType == eWindowType_popup && aInitData->mNoAutoHide) {
+            gdk_window_add_filter(mGdkWindow, popup_take_focus_filter, nullptr);
+        }
 
         if (mWindowType == eWindowType_popup) {
             // gdk does not automatically set the cursor for "temporary"

@@ -692,7 +692,8 @@ nsSystemInfo::Init()
   char gtkver[64];
   ssize_t gtkver_len = 0;
 
-#if MOZ_WIDGET_GTK == 2
+#if (MOZ_WIDGET_GTK == 2) && defined(USE_GLX_TEST)
+  // it's defined in toolkit/xre/glxtest.cpp
   extern int gtk_read_end_of_the_pipe;
 
   if (gtk_read_end_of_the_pipe != -1) {

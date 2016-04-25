@@ -63,10 +63,10 @@ namespace gl {
 #endif
 
 #ifdef MOZ_GL_PROVIDER
-  #define GL_CONTEXT_PROVIDER_NAME MOZ_GL_PROVIDER
-  #include "GLContextProviderImpl.h"
-  #undef GL_CONTEXT_PROVIDER_NAME
-  #define GL_CONTEXT_PROVIDER_DEFAULT MOZ_GL_PROVIDER
+// Force use the specified provider as the default one.
+// When an unknown or unsupported provider for the platform is specified, it 
+// will cause a build error.
+#define GL_CONTEXT_PROVIDER_DEFAULT MOZ_GL_PROVIDER
 #endif
 
 #ifdef GL_CONTEXT_PROVIDER_DEFAULT

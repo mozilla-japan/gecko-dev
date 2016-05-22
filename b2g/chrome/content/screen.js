@@ -99,6 +99,32 @@ function onStart() {
   
   // Special case --screen=full goes into fullscreen mode
   if (screenarg === 'full') {
+    let fullScreenOrientation;
+
+    window.onresize = function() {
+      let controls = document.getElementById('controls');
+      let controlsHeight = controls ? controls.getBoundingClientRect().height : 0;
+      let width = window.innerWidth;
+      let height = window.innerHeight + controlsHeight;
+
+      GlobalSimulatorScreen.width = width;
+      GlobalSimulatorScreen.height = height;
+
+      if (!fullScreenOrientation && width > 1 && height > 1) {
+        // default screen orientation has been determined
+        fullScreenOrientation = width < height ? 'portrait' : 'landscape';
+        GlobalSimulatorScreen.screenOrientation = fullScreenOrientation;
+        if (!GlobalSimulatorScreen.mozOrientationLocked) {
+          GlobalSimulatorScreen.mozOrientation = fullScreenOrientation;
+        } else {
+          // Hack for avoiding undesired rotation on B2G simulator
+          // TODO: Should flip the screen as same as windowed mode?
+          fullScreenOrientation = GlobalSimulatorScreen.mozOrientation;
+          GlobalSimulatorScreen.screenOrientation = fullScreenOrientation;
+        }
+      }
+    };
+
     shell.setAttribute('sizemode', 'fullscreen');
     return;
   } 

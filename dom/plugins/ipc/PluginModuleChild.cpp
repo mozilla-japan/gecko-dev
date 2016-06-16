@@ -338,7 +338,7 @@ PluginModuleChild::InitForChrome(const std::string& aPluginFilename,
     return true;
 }
 
-#if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
 typedef void (*GObjectDisposeFn)(GObject*);
 typedef gboolean (*GtkWidgetScrollEventFn)(GtkWidget*, GdkEventScroll*);
 typedef void (*GtkPlugEmbeddedFn)(GtkPlug*);
@@ -606,7 +606,7 @@ PluginModuleChild::ShouldContinueFromReplyTimeout()
 bool
 PluginModuleChild::InitGraphics()
 {
-#if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
     // Work around plugins that don't interact well with GDK
     // client-side windows.
     PR_SetEnv("GDK_NATIVE_WINDOWS=1");
@@ -1189,7 +1189,7 @@ _getvalue(NPP aNPP,
         case NPNVSupportsWindowless:
             *(NPBool*)aValue = PluginModuleChild::GetChrome()->Settings().supportsWindowless();
             return NPERR_NO_ERROR;
-#if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
         case NPNVxDisplay: {
             if (aNPP) {
                 return InstCast(aNPP)->NPN_GetValue(aVariable, aValue);

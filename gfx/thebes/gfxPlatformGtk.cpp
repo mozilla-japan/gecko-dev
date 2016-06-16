@@ -27,11 +27,12 @@
 #include <gtk/gtk.h>
 
 #include "gfxImageSurface.h"
+#include "mozilla/Preferences.h"
+
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #include "gfxXlibSurface.h"
 #include "cairo-xlib.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/X11Util.h"
 
 /* Undefine the Status from Xlib since it will conflict with system headers on OSX */
@@ -99,9 +100,11 @@ gfxPlatformGtk::~gfxPlatformGtk()
 void
 gfxPlatformGtk::FlushContentDrawing()
 {
+#ifdef MOZ_X11
     if (UseXRender()) {
         XFlush(DefaultXDisplay());
     }
+#endif
 }
 
 already_AddRefed<gfxASurface>

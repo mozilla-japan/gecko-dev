@@ -57,7 +57,9 @@ root_window_event_filter(GdkXEvent *aGdkXEvent, GdkEvent *aGdkEvent,
 nsScreenManagerGtk :: nsScreenManagerGtk ( )
   : mXineramalib(nullptr)
   , mRootWindow(nullptr)
+#ifdef MOZ_X11
   , mNetWorkareaAtom(0)
+#endif
 {
   // nothing else to do. I guess we could cache a bunch of information
   // here, but we want to ask the device at runtime in case anything

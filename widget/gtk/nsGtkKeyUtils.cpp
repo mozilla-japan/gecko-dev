@@ -174,8 +174,10 @@ KeymapWrapper::KeymapWrapper() :
     g_signal_connect(mGdkKeymap, "keys-changed",
                      (GCallback)OnKeysChanged, this);
 
+#ifdef MOZ_X11
     if (GDK_IS_X11_DISPLAY(gdk_display_get_default()))
         InitXKBExtension();
+#endif
 
     Init();
 }
@@ -195,10 +197,12 @@ KeymapWrapper::Init()
     mModifierKeys.Clear();
     memset(mModifierMasks, 0, sizeof(mModifierMasks));
 
+#ifdef MOZ_X11
     if (GDK_IS_X11_DISPLAY(gdk_display_get_default()))
         InitBySystemSettings();
 
     gdk_window_add_filter(nullptr, FilterEvents, this);
+#endif
 
     MOZ_LOG(gKeymapWrapperLog, LogLevel::Info,
         ("KeymapWrapper(%p): Init, CapsLock=0x%X, NumLock=0x%X, "
@@ -213,6 +217,7 @@ KeymapWrapper::Init()
          GetModifierMask(SUPER), GetModifierMask(HYPER)));
 }
 
+#ifdef MOZ_X11
 void
 KeymapWrapper::InitXKBExtension()
 {
@@ -439,10 +444,13 @@ KeymapWrapper::InitBySystemSettings()
     XFreeModifiermap(xmodmap);
     XFree(xkeymap);
 }
+#endif
 
 KeymapWrapper::~KeymapWrapper()
 {
+#ifdef MOZ_X11
     gdk_window_remove_filter(nullptr, FilterEvents, this);
+#endif
     g_signal_handlers_disconnect_by_func(mGdkKeymap,
                                          FuncToGpointer(OnKeysChanged), this);
     g_object_unref(mGdkKeymap);
@@ -451,6 +459,7 @@ KeymapWrapper::~KeymapWrapper()
         ("KeymapWrapper(%p): Destructor", this));
 }
 
+#ifdef MOZ_X11
 /* static */ GdkFilterReturn
 KeymapWrapper::FilterEvents(GdkXEvent* aXEvent,
                             GdkEvent* aGdkEvent,
@@ -521,6 +530,7 @@ KeymapWrapper::FilterEvents(GdkXEvent* aXEvent,
 
     return GDK_FILTER_CONTINUE;
 }
+#endif
 
 /* static */ void
 KeymapWrapper::OnKeysChanged(GdkKeymap *aGdkKeymap,
@@ -888,6 +898,7 @@ KeymapWrapper::InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
     // state.  It means if there're some pending modifier key press or
     // key release events, the result isn't what we want.
     guint modifierState = aGdkKeyEvent->state;
+#ifdef MOZ_X11
     GdkDisplay* gdkDisplay = gdk_display_get_default();
     if (aGdkKeyEvent->is_modifier && GDK_IS_X11_DISPLAY(gdkDisplay)) {
         Display* display =
@@ -906,6 +917,7 @@ KeymapWrapper::InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
             }
         }
     }
+#endif
     InitInputEvent(aKeyEvent, modifierState);
 
     switch (aGdkKeyEvent->keyval) {

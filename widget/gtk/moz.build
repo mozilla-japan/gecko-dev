@@ -43,6 +43,11 @@ SOURCES += [
     'nsWindow.cpp', # conflicts with X11 headers
 ]
 
+if not CONFIG['MOZ_X11']:
+    UNIFIED_SOURCES += [
+        'GfxInfoGTK.cpp'
+    ]
+
 if CONFIG['MOZ_X11']:
     UNIFIED_SOURCES += [
         'nsIdleServiceGTK.cpp',
@@ -92,12 +97,8 @@ LOCAL_INCLUDES += [
     '/layout/xul',
     '/other-licenses/atk-1.0',
     '/widget',
+    '/widget/x11', # the current code under it isn't X11 specific
 ]
-
-if CONFIG['MOZ_X11']:
-    LOCAL_INCLUDES += [
-        '/widget/x11',
-    ]
 
 DEFINES['CAIRO_GFX'] = True
 

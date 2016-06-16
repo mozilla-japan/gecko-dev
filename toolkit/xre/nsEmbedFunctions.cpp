@@ -47,8 +47,10 @@
 #include "nsVersionComparator.h"
 #include "chrome/common/mach_ipc_mac.h"
 #endif
+#ifdef MOZ_X11
 #include "nsX11ErrorHandler.h"
 #include "nsGDKErrorHandler.h"
+#endif
 #include "base/at_exit.h"
 #include "base/command_line.h"
 #include "base/message_loop.h"

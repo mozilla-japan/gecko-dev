@@ -35,7 +35,10 @@
 #include <map>
 
 #ifdef MOZ_WIDGET_GTK
+#include <gtk/gtk.h>
+#ifdef MOZ_X11
 #include "gtk2xtbin.h"
+#endif
 #endif
 
 class gfxASurface;

@@ -10,12 +10,14 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdk.h>
+#ifdef MOZ_X11
 #if (GTK_MAJOR_VERSION == 3)
 #include <gtk/gtkx.h>
 #else
 #include "gtk2xtbin.h"
 #endif
 #include "mozilla/X11Util.h"
+#endif
 
 class nsPluginNativeWindowGtk : public nsPluginNativeWindow {
 public:

@@ -577,10 +577,12 @@ STUB(gtk_color_chooser_set_rgba)
 STUB(gtk_color_chooser_get_rgba)
 STUB(gtk_color_chooser_set_use_alpha)
 STUB(gdk_cairo_create)
+STUB(gdk_cairo_region_create_from_surface)
 STUB(gdk_screen_get_monitor_workarea)
 STUB(gdk_screen_get_primary_monitor)
-STUB(gtk_drawing_area_new)
 STUB(gdk_window_set_transient_for)
+STUB(gtk_drawing_area_new)
+STUB(gtk_widget_shape_combine_region)
 #endif
 
 #ifdef GTK2_SYMBOLS

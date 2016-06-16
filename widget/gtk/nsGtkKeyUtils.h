@@ -342,6 +342,7 @@ protected:
     void InitKeypressEvent(WidgetKeyboardEvent& aKeyEvent,
                            GdkEventKey* aGdkKeyEvent);
 
+#ifdef MOZ_X11
     /**
      * FilterEvents() listens all events on all our windows.
      * Be careful, this may make damage to performance if you add expensive
@@ -350,6 +351,7 @@ protected:
     static GdkFilterReturn FilterEvents(GdkXEvent* aXEvent,
                                         GdkEvent* aGdkEvent,
                                         gpointer aData);
+#endif
 };
 
 } // namespace widget

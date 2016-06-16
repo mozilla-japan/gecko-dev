@@ -29,7 +29,7 @@
 #endif
 #endif
 
-#ifdef CAIRO_HAS_XLIB_SURFACE
+#if defined(MOZ_X11) && defined(CAIRO_HAS_XLIB_SURFACE)
 #include "cairo-xlib.h"
 #include "cairo-xlib-xrender.h"
 #endif
@@ -687,7 +687,7 @@ GfxFormatForCairoSurface(cairo_surface_t* surface)
         return CairoContentToGfxFormat(cairo_surface_get_content(surface));
     }
   }
-#ifdef CAIRO_HAS_XLIB_SURFACE
+#if defined(MOZ_X11) && defined(CAIRO_HAS_XLIB_SURFACE)
   // xlib is currently the only Cairo backend that creates 16bpp surfaces
   if (type == CAIRO_SURFACE_TYPE_XLIB &&
       cairo_xlib_surface_get_depth(surface) == 16) {
@@ -1518,7 +1518,7 @@ DrawTargetCairo::CreateSourceSurfaceFromData(unsigned char *aData,
   return source_surf.forget();
 }
 
-#ifdef CAIRO_HAS_XLIB_SURFACE
+#if defined(MOZ_X11) && defined(CAIRO_HAS_XLIB_SURFACE)
 static cairo_user_data_key_t gDestroyPixmapKey;
 
 struct DestroyPixmapClosure {
@@ -1541,7 +1541,7 @@ already_AddRefed<SourceSurface>
 DrawTargetCairo::OptimizeSourceSurface(SourceSurface *aSurface) const
 {
   RefPtr<SourceSurface> surface(aSurface);
-#ifdef CAIRO_HAS_XLIB_SURFACE
+#if defined(MOZ_X11) && defined(CAIRO_HAS_XLIB_SURFACE)
   cairo_surface_type_t ctype = cairo_surface_get_type(mSurface);
   if (aSurface->GetType() == SurfaceType::CAIRO &&
       cairo_surface_get_type(
@@ -1874,7 +1874,7 @@ BorrowedXlibDrawable::Init(DrawTarget* aDT)
   mDT = aDT;
   mDrawable = None;
 
-#ifdef CAIRO_HAS_XLIB_SURFACE
+#if defined(MOZ_X11) && defined (CAIRO_HAS_XLIB_SURFACE)
   if (aDT->GetBackendType() != BackendType::CAIRO ||
       aDT->IsDualDrawTarget() ||
       aDT->IsTiledDrawTarget()) {

@@ -51,6 +51,7 @@ TEST_DIRS += ['tests']
 #
 if CONFIG['MOZ_ENABLE_GTK']:
     DIRS += ['gtk']
+    DIRS += ['x11']  # the current code under it isn't X11 specific
 
     if CONFIG['MOZ_X11']:
         DIRS += ['gtkxtbin']
@@ -192,7 +193,8 @@ if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
 EXPORTS.ipc = ['nsGUIEventIPC.h']
 
 if CONFIG['MOZ_X11']:
-    DIRS += ['x11']
+    if not CONFIG['MOZ_WIDGET_GTK']:
+        DIRS += ['x11']
     UNIFIED_SOURCES += [
         'GfxInfoX11.cpp'
     ]

@@ -3774,8 +3774,12 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
                                              mGdkDisplay);
   }
 
+#ifdef MOZ_ENABLE_XREMOTE
+#ifdef MOZ_X11
   if (!GDK_IS_X11_DISPLAY(mGdkDisplay))
+#endif
     mDisableRemote = true;
+#endif
 #endif
 #ifdef MOZ_ENABLE_XREMOTE
   // handle --remote now that xpcom is fired up

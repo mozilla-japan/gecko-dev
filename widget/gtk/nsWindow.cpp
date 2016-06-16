@@ -40,9 +40,6 @@
 #include <X11/Xatom.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/shape.h>
-#if (MOZ_WIDGET_GTK == 3)
-#include <gdk/gdkkeysyms-compat.h>
-#endif
 
 #ifdef AIX
 #include <X11/keysym.h>
@@ -54,6 +51,9 @@
 #include "gtk2xtbin.h"
 #endif
 #endif /* MOZ_X11 */
+#if (MOZ_WIDGET_GTK == 3)
+#include <gdk/gdkkeysyms-compat.h>
+#endif
 #include <gdk/gdkkeysyms.h>
 #if (MOZ_WIDGET_GTK == 2)
 #include <gtk/gtkprivate.h>
@@ -303,6 +303,7 @@ public:
 
     void GetTimeAsyncForPossibleBackwardsSkew(const TimeStamp& aNow)
     {
+#ifdef MOZ_X11
         // Check for in-flight request
         if (!mIsX11Display || !mAsyncUpdateStart.IsNull()) {
             return;
@@ -316,6 +317,7 @@ public:
         XChangeProperty(xDisplay, xWindow, timeStampPropAtom,
                         timeStampPropAtom, 8, PropModeReplace, &c, 1);
         XFlush(xDisplay);
+#endif
     }
 
     gboolean PropertyNotifyHandler(GtkWidget* aWidget,
@@ -734,11 +736,14 @@ nsWindow::Destroy(void)
         }
     }
 
+#ifdef MOZ_X11
+    // TODO: Implement it for other platforms
     // dragService will be null after shutdown of the service manager.
     nsDragService *dragService = nsDragService::GetInstance();
     if (dragService && this == dragService->GetMostRecentDestWindow()) {
         dragService->ScheduleLeaveEvent();
     }
+#endif
 
     NativeShow(false);
 
@@ -1546,6 +1551,7 @@ nsWindow::UpdateClientOffset()
         return;
     }
 
+#ifdef MOZ_X11
     GdkAtom cardinal_atom = gdk_x11_xatom_to_atom(XA_CARDINAL);
 
     GdkAtom type_returned;
@@ -1573,6 +1579,11 @@ nsWindow::UpdateClientOffset()
     int32_t top = int32_t(frame_extents[2]);
 
     g_free(frame_extents);
+#else
+    // TODO: Implement it for other platforms
+    int32_t left = 0;
+    int32_t top = 0;
+#endif
 
     mClientOffset = nsIntPoint(left, top);
 }
@@ -2247,7 +2258,6 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     }
     RefPtr<gfxContext> ctx;
 
-#ifdef MOZ_X11
     nsIntRect boundsRect; // for shaped only
 
     if (shaped) {
@@ -2294,8 +2304,6 @@ nsWindow::OnExposeEvent(cairo_t *cr)
 #endif
 #endif
 
-#endif // MOZ_X11
-
     bool painted = false;
     {
       if (GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_BASIC) {
@@ -2304,7 +2312,6 @@ nsWindow::OnExposeEvent(cairo_t *cr)
       }
     }
 
-#ifdef MOZ_X11
     // PaintWindow can Destroy us (bug 378273), avoid doing any paint
     // operations below if that happened - it will lead to XError and exit().
     if (shaped) {
@@ -2328,7 +2335,6 @@ nsWindow::OnExposeEvent(cairo_t *cr)
       mShmImage->Put(mXDisplay, mXWindow, region.ToUnknownRegion());
     }
 #  endif  // MOZ_HAVE_SHMIMAGE
-#endif // MOZ_X11
 
     listener->DidPaintWindow();
 
@@ -2919,6 +2925,8 @@ nsWindow::OnContainerFocusOutEvent(GdkEventFocus *aEvent)
     LOGFOCUS(("OnContainerFocusOutEvent [%p]\n", (void *)this));
 
     if (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog) {
+#ifdef MOZ_X11
+        // TODO: Implement it for other platforms
         nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
         nsCOMPtr<nsIDragSession> dragSession;
         dragService->GetCurrentSession(getter_AddRefs(dragSession));
@@ -2933,6 +2941,9 @@ nsWindow::OnContainerFocusOutEvent(GdkEventFocus *aEvent)
             dragSession->GetSourceNode(getter_AddRefs(sourceNode));
             shouldRollup = (sourceNode == nullptr);
         }
+#else
+        bool shouldRollup = true;
+#endif
 
         if (shouldRollup) {
             CheckForRollup(0, 0, false, true);
@@ -3403,9 +3414,12 @@ nsWindow::OnDragDataReceivedEvent(GtkWidget *aWidget,
 {
     LOGDRAG(("nsWindow::OnDragDataReceived(%p)\n", (void*)this));
 
+#ifdef MOZ_X11
+    // TODO: Implement it for other platforms
     nsDragService::GetInstance()->
         TargetDataReceived(aWidget, aDragContext, aX, aY,
                            aSelectionData, aInfo, aTime);
+#endif
 }
 
 #if GTK_CHECK_VERSION(3,4,0)
@@ -3746,9 +3760,11 @@ nsWindow::Create(nsIWidget* aParent,
         // the drawing window
         mGdkWindow = gtk_widget_get_window(eventWidget);
 
+#ifdef MOZ_X11
         if (mWindowType == eWindowType_popup && aInitData->mNoAutoHide) {
             gdk_window_add_filter(mGdkWindow, popup_take_focus_filter, nullptr);
         }
+#endif
 
         if (mWindowType == eWindowType_popup) {
             // gdk does not automatically set the cursor for "temporary"
@@ -6035,9 +6051,14 @@ drag_motion_event_cb(GtkWidget *aWidget,
 
     LayoutDeviceIntPoint point = window->GdkPointToDevicePixels({ retx, rety });
 
+#ifdef MOZ_X11
+    // TODO: Implement it for other platforms
     return nsDragService::GetInstance()->
         ScheduleMotionEvent(innerMostWindow, aDragContext,
                             point, aTime);
+#else
+    return FALSE;
+#endif
 }
 
 static void
@@ -6050,6 +6071,8 @@ drag_leave_event_cb(GtkWidget *aWidget,
     if (!window)
         return;
 
+#ifdef MOZ_X11
+    // TODO: Implement it for other platforms
     nsDragService *dragService = nsDragService::GetInstance();
 
     nsWindow *mostRecentDragWindow = dragService->GetMostRecentDestWindow();
@@ -6075,6 +6098,7 @@ drag_leave_event_cb(GtkWidget *aWidget,
              (void*)mostRecentDragWindow));
 
     dragService->ScheduleLeaveEvent();
+#endif
 }
 
 
@@ -6107,9 +6131,14 @@ drag_drop_event_cb(GtkWidget *aWidget,
 
     LayoutDeviceIntPoint point = window->GdkPointToDevicePixels({ retx, rety });
 
+#ifdef MOZ_X11
+    // TODO: Implement it for other platforms
     return nsDragService::GetInstance()->
         ScheduleDropEvent(innerMostWindow, aDragContext,
                           point, aTime);
+#else
+    return FALSE;
+#endif
 }
 
 static void
@@ -6469,21 +6498,23 @@ nsWindow::GetDrawTarget(const nsIntRegion& aRegion)
 
   RefPtr<DrawTarget> dt;
 
-#ifdef MOZ_X11
-#  ifdef MOZ_HAVE_SHMIMAGE
+#if defined(MOZ_X11) && defined(MOZ_HAVE_SHMIMAGE)
   if (mIsX11Display && nsShmImage::UseShm()) {
     dt = nsShmImage::EnsureShmImage(size,
                                     mXDisplay, mXVisual, mXDepth,
                                     mShmImage);
   }
-#  endif  // MOZ_HAVE_SHMIMAGE
+#endif // MOZ_X11 && MOZ_HAVE_SHMIMAGE
   if (!dt) {
+#ifdef MOZ_X11
     if (mIsX11Display) {
       RefPtr<gfxXlibSurface> surf = new gfxXlibSurface(mXDisplay, mXWindow, mXVisual, size);
       if (!surf->CairoStatus()) {
         dt = gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(surf.get(), surf->GetSize());
       }
-    } else {
+    } else
+#endif // MOZ_X11
+    {
       cairo_t *cr = gdk_cairo_create(mGdkWindow);
       cairo_surface_t *csurf = cairo_get_target(cr);
       if (cairo_surface_status(csurf) == CAIRO_STATUS_SUCCESS) {
@@ -6496,7 +6527,6 @@ nsWindow::GetDrawTarget(const nsIntRegion& aRegion)
       }
     }
   }
-#endif // MOZ_X11
 
   return dt.forget();
 }

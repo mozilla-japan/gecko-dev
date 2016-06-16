@@ -22,7 +22,9 @@
 #else
 #include "gtk2xtbin.h"
 #endif
+#ifdef MOZ_X11
 #include "mozilla/X11Util.h"
+#endif
 
 static gboolean plug_removed_cb   (GtkWidget *widget, gpointer data);
 static void socket_unrealize_cb   (GtkWidget *widget, gpointer data);
@@ -40,10 +42,12 @@ nsPluginNativeWindowGtk::nsPluginNativeWindowGtk() : nsPluginNativeWindow()
   type = NPWindowTypeWindow;
   mSocketWidget = 0;
   mWsInfo.type = 0;
+#ifdef MOZ_X11
   mWsInfo.display = nullptr;
   mWsInfo.visual = nullptr;
   mWsInfo.colormap = 0;
   mWsInfo.depth = 0;
+#endif
 }
 
 nsPluginNativeWindowGtk::~nsPluginNativeWindowGtk() 
@@ -207,6 +211,7 @@ nsresult nsPluginNativeWindowGtk::CreateXEmbedWindow(bool aEnableXtFocus) {
   if(!gdkWindow)
     return NS_ERROR_FAILURE;
 
+#ifdef MOZ_X11
   mWsInfo.display = GDK_WINDOW_XDISPLAY(gdkWindow);
 #if (MOZ_WIDGET_GTK == 2)
   mWsInfo.colormap = GDK_COLORMAP_XCOLORMAP(gdk_drawable_get_colormap(gdkWindow));
@@ -218,6 +223,7 @@ nsresult nsPluginNativeWindowGtk::CreateXEmbedWindow(bool aEnableXtFocus) {
   mWsInfo.depth = gdk_visual_get_depth(gdkVisual);
 #endif
   mWsInfo.visual = GDK_VISUAL_XVISUAL(gdkVisual);
+#endif
     
   return NS_OK;
 }
@@ -289,6 +295,7 @@ plug_removed_cb (GtkWidget *widget, gpointer data)
 static void
 socket_unrealize_cb(GtkWidget *widget, gpointer data)
 {
+#ifdef MOZ_X11
   // Unmap and reparent any child windows that GDK does not yet know about.
   // (See bug 540114 comment 10.)
   GdkWindow* socket_window =  gtk_widget_get_window(widget);
@@ -322,5 +329,6 @@ socket_unrealize_cb(GtkWidget *widget, gpointer data)
   gdk_error_trap_pop_ignored();
 #else
   gdk_error_trap_pop();
+#endif
 #endif
 }

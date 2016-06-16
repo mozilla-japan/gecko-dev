@@ -32,6 +32,8 @@ else:
 OS_LIBS += [f for f in CONFIG['MOZ_GTK3_LIBS'] if f.startswith('-L')]
 OS_LIBS += no_as_needed
 OS_LIBS += [
+    'wayland-client',
+    'wayland-egl',
     'gtk-3',
     'gdk-3',
 ]

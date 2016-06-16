@@ -583,6 +583,8 @@ STUB(gtk_drawing_area_new)
 STUB(gdk_window_set_transient_for)
 STUB(gdk_wayland_display_get_type)
 STUB(gdk_wayland_display_get_wl_display)
+STUB(gdk_wayland_window_get_type)
+STUB(gdk_wayland_window_get_wl_surface)
 #endif
 
 #ifdef GTK2_SYMBOLS

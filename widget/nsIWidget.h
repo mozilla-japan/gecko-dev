@@ -127,6 +127,7 @@ typedef void* nsNativeWidget;
 #if defined(MOZ_WIDGET_GTK)
 // set/get nsPluginNativeWindowGtk, e10s specific
 #define NS_NATIVE_PLUGIN_OBJECT_PTR    104
+#define NS_NATIVE_EGL_WINDOW           105
 #endif
 
 #define NS_IWIDGET_IID \

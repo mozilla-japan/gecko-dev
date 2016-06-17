@@ -14,15 +14,14 @@
 #include "nsNPAPIPlugin.h"
 #include "npapi.h"
 #include <gtk/gtk.h>
-#include <gdk/gdkx.h>
 #include <gdk/gdk.h>
-
+#ifdef MOZ_X11
+#include <gdk/gdkx.h>
 #if (GTK_MAJOR_VERSION == 3)
 #include <gtk/gtkx.h>
 #else
 #include "gtk2xtbin.h"
 #endif
-#ifdef MOZ_X11
 #include "mozilla/X11Util.h"
 #endif
 
@@ -82,6 +81,7 @@ nsresult nsPluginNativeWindowGtk::CallSetWindow(RefPtr<nsNPAPIPluginInstance> &a
       // socket widget we need to hand to plugins.
       SetWindow((XID)window);
 	  } else if (type == NPWindowTypeWindow) {
+#ifdef MOZ_X11
       if (!mSocketWidget) {
         nsresult rv;
 
@@ -144,6 +144,9 @@ nsresult nsPluginNativeWindowGtk::CallSetWindow(RefPtr<nsNPAPIPluginInstance> &a
 #ifdef DEBUG
       printf("nsPluginNativeWindowGtk: call SetWindow with xid=%p\n", (void *)window);
 #endif
+#else
+      return NS_ERROR_FAILURE;
+#endif
     } // NPWindowTypeWindow
     aPluginInstance->SetWindow(this);
   } else if (mPluginInstance) {
@@ -154,6 +157,7 @@ nsresult nsPluginNativeWindowGtk::CallSetWindow(RefPtr<nsNPAPIPluginInstance> &a
   return NS_OK;
 }
 
+#if MOZ_X11
 nsresult nsPluginNativeWindowGtk::CreateXEmbedWindow(bool aEnableXtFocus) {
   NS_ASSERTION(!mSocketWidget,"Already created a socket widget!");
   GdkDisplay *display = gdk_display_get_default();
@@ -227,6 +231,7 @@ nsresult nsPluginNativeWindowGtk::CreateXEmbedWindow(bool aEnableXtFocus) {
     
   return NS_OK;
 }
+#endif
 
 void nsPluginNativeWindowGtk::SetAllocation() {
   if (!mSocketWidget)

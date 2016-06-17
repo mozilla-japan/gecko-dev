@@ -32,11 +32,11 @@
 #include "nsScreenGtk.h"
 
 #include <gtk/gtk.h>
+#ifdef MOZ_X11
+#include <gdk/gdkx.h>
 #if (MOZ_WIDGET_GTK == 3)
 #include <gtk/gtkx.h>
 #endif
-#ifdef MOZ_X11
-#include <gdk/gdkx.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/shape.h>
@@ -294,9 +294,12 @@ public:
 
     guint32 GetCurrentTime() const
     {
+#ifdef MOZ_X11
         if (mIsX11Display) {
             return gdk_x11_get_server_time(mWindow);
-        } else {
+        } else
+#endif
+        {
             return g_get_monotonic_time()/1000;
         }
     }
@@ -326,10 +329,12 @@ public:
         if (!mIsX11Display)
             return FALSE;
 
+#ifdef MOZ_X11
         if (aEvent->atom !=
             gdk_x11_xatom_to_atom(TimeStampPropAtom())) {
             return FALSE;
         }
+#endif
 
         guint32 eventTime = aEvent->time;
         TimeStamp lowerBound = mAsyncUpdateStart;
@@ -340,10 +345,12 @@ public:
     }
 
 private:
+#ifdef MOZ_X11
     static Atom TimeStampPropAtom() {
         return gdk_x11_get_xatom_by_name_for_display(
             gdk_display_get_default(), "GDK_TIMESTAMP_PROP");
     }
+#endif
 
     // This is safe because this class is stored as a member of mWindow and
     // won't outlive it.
@@ -436,7 +443,11 @@ nsWindow::nsWindow()
     mHandleTouchEvent    = false;
 #endif
     mIsDragPopup         = false;
+#ifdef MOZ_X11
     mIsX11Display     = GDK_IS_X11_DISPLAY(gdk_display_get_default());
+#else
+    mIsX11Display     = false;
+#endif
 
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
@@ -1386,6 +1397,7 @@ SetUserTimeAndStartupIDForActivatedWindow(GtkWidget* aWindow)
 /* static */ guint32
 nsWindow::GetLastUserInputTime()
 {
+#ifdef MOZ_X11
     // gdk_x11_display_get_user_time tracks button and key presses,
     // DESKTOP_STARTUP_ID used to start the app, drop events from external
     // drags, WM_DELETE_WINDOW delete events, but not usually mouse motion nor
@@ -1403,6 +1415,9 @@ nsWindow::GetLastUserInputTime()
     }       
 
     return timestamp;
+#else
+    return sLastUserInputTime;
+#endif
 }
 
 NS_IMETHODIMP
@@ -1760,7 +1775,11 @@ nsWindow::GetNativeData(uint32_t aDataType)
         return GetToplevelWidget();
 
     case NS_NATIVE_SHAREABLE_WINDOW:
+#ifdef MOZ_X11
         return (void *) GDK_WINDOW_XID(gdk_window_get_toplevel(mGdkWindow));
+#else
+        return nullptr;
+#endif /* MOX_X11 */
     case NS_NATIVE_PLUGIN_OBJECT_PTR:
         return (void *) mPluginNativeWindow;
     case NS_RAW_NATIVE_IME_CONTEXT:
@@ -2199,7 +2218,12 @@ nsWindow::OnExposeEvent(cairo_t *cr)
 
     LOGDRAW(("sending expose event [%p] %p 0x%lx (rects follow):\n",
              (void *)this, (void *)mGdkWindow,
-             gdk_x11_window_get_xid(mGdkWindow)));
+#ifdef MOZ_X11
+             gdk_x11_window_get_xid(mGdkWindow)
+#else
+             0
+#endif
+             ));
 
     // Our bounds may have changed after calling WillPaintWindow.  Clip
     // to the new bounds here.  The region is relative to this
@@ -3963,7 +3987,12 @@ nsWindow::Create(nsIWidget* aParent,
     if (mShell) {
         LOG(("\tmShell %p mContainer %p mGdkWindow %p 0x%lx\n",
              mShell, mContainer, mGdkWindow,
-             gdk_x11_window_get_xid(mGdkWindow)));
+#ifdef MOZ_X11
+             gdk_x11_window_get_xid(mGdkWindow)
+#else
+             0
+#endif
+             ));
     } else if (mContainer) {
         LOG(("\tmContainer %p mGdkWindow %p\n", mContainer, mGdkWindow));
     }
@@ -4721,12 +4750,12 @@ nsWindow::SetupPluginPort(void)
     if (gdk_window_is_destroyed(mGdkWindow) == TRUE)
         return nullptr;
 
+#ifdef MOZ_X11
     Window window = gdk_x11_window_get_xid(mGdkWindow);
     
     // we have to flush the X queue here so that any plugins that
     // might be running on separate X connections will be able to use
     // this window in case it was just created
-#ifdef MOZ_X11
     XWindowAttributes xattrs;    
     Display *display = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
     XGetWindowAttributes(display, window, &xattrs);
@@ -4737,9 +4766,11 @@ nsWindow::SetupPluginPort(void)
     gdk_window_add_filter(mGdkWindow, plugin_window_filter_func, this);
 
     XSync(display, False);
-#endif /* MOZ_X11 */
     
     return (void *)window;
+#else
+    return nullptr;
+#endif /* MOZ_X11 */
 }
 
 void

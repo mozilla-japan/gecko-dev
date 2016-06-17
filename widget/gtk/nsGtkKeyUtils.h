@@ -11,8 +11,10 @@
 #include "nsTArray.h"
 #include "mozilla/EventForwards.h"
 
+#ifdef MOZ_X11
 #include <gdk/gdk.h>
 #include <X11/XKBlib.h>
+#endif
 
 namespace mozilla {
 namespace widget {
@@ -215,6 +217,7 @@ protected:
      */
     int mXKBBaseEventCode;
 
+#ifdef MOZ_X11
     /**
      * Only auto_repeats[] stores valid value.  If you need to use other
      * members, you need to listen notification events for them.
@@ -222,6 +225,7 @@ protected:
      * InitXKBExtension().
      */
     XKeyboardState mKeyboardState;
+#endif
 
     /**
      * Pointer of the singleton instance.

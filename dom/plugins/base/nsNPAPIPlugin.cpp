@@ -58,9 +58,11 @@
 // needed for nppdf plugin
 #if (MOZ_WIDGET_GTK)
 #include <gdk/gdk.h>
+#ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #if (MOZ_WIDGET_GTK == 2)
 #include "gtk2xtbin.h"
+#endif
 #endif
 #endif
 

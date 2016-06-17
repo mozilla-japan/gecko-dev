@@ -11,12 +11,14 @@
 
 #include <gdk/gdkkeysyms.h>
 #include <algorithm>
+#ifdef MOZ_X11
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
+#include <X11/XKBlib.h>
+#endif
 #if (MOZ_WIDGET_GTK == 3)
 #include <gdk/gdkkeysyms-compat.h>
 #endif
-#include <X11/XKBlib.h>
 #include "WidgetUtils.h"
 #include "keysym2ucs.h"
 #include "nsGtkUtils.h"
@@ -1158,6 +1160,7 @@ KeymapWrapper::IsLatinGroup(guint8 aGroup)
     return result;
 }
 
+#ifdef MOZ_X11
 bool
 KeymapWrapper::IsAutoRepeatableKey(guint aHardwareKeyCode)
 {
@@ -1167,6 +1170,7 @@ KeymapWrapper::IsAutoRepeatableKey(guint aHardwareKeyCode)
     char bitMask = 1 << (aHardwareKeyCode % 8);
     return (mKeyboardState.auto_repeats[indexOfArray] & bitMask) != 0;
 }
+#endif
 
 /* static */ bool
 KeymapWrapper::IsBasicLatinLetterOrNumeral(uint32_t aCharCode)

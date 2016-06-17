@@ -130,7 +130,7 @@ PluginWidgetParent::RecvCreate(nsresult* aResult)
   drv = mWidget->EnableDragDrop(true);
   NS_ASSERTION(NS_SUCCEEDED(drv), "widget call failure");
 
-#if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_X11) && defined(MOZ_WIDGET_GTK)
   // For setup, initially GTK code expects 'window' to hold the parent.
   mWrapper->window = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
   drv = mWrapper->CreateXEmbedWindow(false);

@@ -4,6 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsShmImage.h"
+
+#ifdef MOZ_HAVE_SHMIMAGE
+
 #if defined(MOZ_WIDGET_GTK)
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -11,12 +15,9 @@
 #include <QWindow>
 #endif
 
-#include "nsShmImage.h"
 #ifdef MOZ_WIDGET_GTK
 #include "gfxPlatformGtk.h"
 #endif
-
-#ifdef MOZ_HAVE_SHMIMAGE
 
 using namespace mozilla::ipc;
 using namespace mozilla::gfx;

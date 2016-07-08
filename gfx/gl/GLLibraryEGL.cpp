@@ -681,11 +681,13 @@ GLLibraryEGL::InitClientExtensions()
 
     const char* rawExtString = nullptr;
 
+#if 0
 #ifndef ANDROID
     // Bug 1209612: Crashes on a number of android drivers.
     // Ideally we would only blocklist this there, but for now we don't need the client
     // extension list on ANDROID (we mostly need it on ANGLE), and we'd rather not crash.
     rawExtString = (const char*)fQueryString(nullptr, LOCAL_EGL_EXTENSIONS);
+#endif
 #endif
 
     if (!rawExtString) {

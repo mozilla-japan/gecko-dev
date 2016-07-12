@@ -495,7 +495,9 @@ gdk/gdkkeysyms.h
 gdk/gdkprivate.h
 gdk/gdkx.h
 gdk/gdkdirectfb.h
+#ifdef MOZ_WAYLAND
 gdk/gdkwayland.h
+#endif
 gdk-pixbuf/gdk-pixbuf.h
 Gestalt.h
 getopt.h
@@ -1206,8 +1208,12 @@ View.h
 Volume.h
 wab.h
 wait.h
+#ifdef MOZ_WAYLAND
 wayland-client.h
+#ifdef MOZ_WAYLAND_EGL
 wayland-egl.h
+#endif
+#endif
 wchar.h
 wctype.h
 winbase.h

@@ -302,9 +302,11 @@ if CONFIG['MOZ_WIDGET_GTK']:
     OS_LIBS += CONFIG['XT_LIBS']
     OS_LIBS += [
         'gthread-2.0',
-        'wayland-client',
-        'wayland-egl',
     ]
+    if CONFIG['MOZ_WAYLAND']:
+        OS_LIBS += ['wayland-client']
+    if CONFIG['MOZ_WAYLAND_EGL']:
+        OS_LIBS += ['wayland-egl']
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
     OS_LIBS += CONFIG['XLDFLAGS']

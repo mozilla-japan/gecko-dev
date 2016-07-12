@@ -23,7 +23,7 @@
 #include "ScopedGLHelpers.h"
 #ifdef MOZ_WIDGET_GTK
 #include <gdk/gdk.h>
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 #include <gdk/gdkwayland.h>
 #endif
 #endif
@@ -411,7 +411,7 @@ GLLibraryEGL::EnsureInitialized(bool forceAccel)
         }
     } else {
         void *nativeDisplay = EGL_DEFAULT_DISPLAY;
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
         // Some drivers doesn't support EGL_DEFAULT_DISPLAY
         GdkDisplay *gdkDisplay = gdk_display_get_default();
         if (GDK_IS_WAYLAND_DISPLAY(gdkDisplay)) {

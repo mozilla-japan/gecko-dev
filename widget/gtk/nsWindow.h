@@ -26,10 +26,12 @@
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #endif /* MOZ_X11 */
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 #include <gdk/gdkwayland.h>
+#ifdef MOZ_WAYLAND_EGL
 #include <wayland-egl.h>
-#endif /* GDK_WINDOWING_WAYLAND */
+#endif /* MOZ_WAYLAND_EGL */
+#endif /* MOZ_WAYLAND */
 
 #ifdef ACCESSIBILITY
 #include "mozilla/a11y/Accessible.h"
@@ -420,7 +422,7 @@ private:
     GtkWidget          *mShell;
     MozContainer       *mContainer;
     GdkWindow          *mGdkWindow;
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND_EGL
     struct wl_egl_window *mWlEglWindow;
 #endif
 

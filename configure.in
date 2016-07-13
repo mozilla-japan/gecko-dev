@@ -4193,7 +4193,11 @@ cairo-gtk3)
                               MOZ_WAYLAND_EGL=1,
                               MOZ_WAYLAND_EGL=)
             if test -n "$MOZ_WAYLAND_EGL"; then
-                AC_DEFINE(MOZ_WAYLAND_EGL)
+                _SAVE_LDFLAGS=$LDFLAGS
+                LDFLAGS="$LDFLAGS $MOZ_WAYLAND_EGL_LIBS"
+                AC_CHECK_LIB(wayland-egl, wl_egl_window_create,
+                            [AC_DEFINE(MOZ_WAYLAND_EGL)], [])
+                LDFLAGS="$_SAVE_LDFLAGS"
             fi
         fi
     fi

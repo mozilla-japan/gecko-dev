@@ -2554,6 +2554,14 @@ nsWindow::OnSizeAllocate(GtkAllocation *aAllocation)
     if (mBounds.Size() == size)
         return;
 
+#ifdef MOZ_WAYLAND_EGL
+    if (mWlEglWindow) {
+        wl_egl_window_resize(mWlEglWindow,
+                             size.width, size.height,
+                             0, 0);
+    }
+#endif /* MOZ_WAYLAND_EGL */
+
     // Invalidate the new part of the window now for the pending paint to
     // minimize background flashes (GDK does not do this for external resizes
     // of toplevels.)

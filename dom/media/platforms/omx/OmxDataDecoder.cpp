@@ -18,12 +18,14 @@
 #undef LOGL
 #endif
 
-#define LOG(arg, ...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, ("OmxDataDecoder(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
+extern mozilla::LogModule* GetPDMLog();
+
+#define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("OmxDataDecoder(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
 #define LOGL(arg, ...)                                                     \
   {                                                                        \
     void* p = self;                                              \
-    MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug,                         \
+    MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,                      \
             ("OmxDataDecoder(%p)::%s: " arg, p, __func__, ##__VA_ARGS__)); \
   }
 
@@ -113,7 +115,9 @@ OmxDataDecoder::OmxDataDecoder(const TrackInfo& aTrackInfo,
   LOG("");
   mOmxLayer = new OmxPromiseLayer(mOmxTaskQueue, this, aImageContainer);
 
-  mOmxTaskQueue->Dispatch(NewRunnableMethod(this, &OmxDataDecoder::InitializationTask));
+  nsCOMPtr<nsIRunnable> r =
+    NS_NewRunnableMethod(this, &OmxDataDecoder::InitializationTask);
+  mOmxTaskQueue->Dispatch(r.forget());
 }
 
 OmxDataDecoder::~OmxDataDecoder()
@@ -169,13 +173,13 @@ OmxDataDecoder::Init()
         MOZ_ASSERT(self->mOmxState != OMX_StateIdle);
       },
       [self] () {
-        self->RejectInitPromise(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
+        self->RejectInitPromise(DecoderFailureReason::INIT_ERROR, __func__);
       });
 
   return p;
 }
 
-void
+nsresult
 OmxDataDecoder::Input(MediaRawData* aSample)
 {
   LOG("sample %p", aSample);
@@ -195,16 +199,20 @@ OmxDataDecoder::Input(MediaRawData* aSample)
       }
     });
   mOmxTaskQueue->Dispatch(r.forget());
+
+  return NS_OK;
 }
 
-void
+nsresult
 OmxDataDecoder::Flush()
 {
   LOG("");
 
   mFlushing = true;
 
-  mOmxTaskQueue->Dispatch(NewRunnableMethod(this, &OmxDataDecoder::DoFlush));
+  nsCOMPtr<nsIRunnable> r =
+    NS_NewRunnableMethod(this, &OmxDataDecoder::DoFlush);
+  mOmxTaskQueue->Dispatch(r.forget());
 
   // According to the definition of Flush() in PDM:
   // "the decoder must be ready to accept new input for decoding".
@@ -213,24 +221,32 @@ OmxDataDecoder::Flush()
   while (mFlushing) {
     lock.Wait();
   }
+
+  return NS_OK;
 }
 
-void
+nsresult
 OmxDataDecoder::Drain()
 {
   LOG("");
 
-  mOmxTaskQueue->Dispatch(NewRunnableMethod(this, &OmxDataDecoder::SendEosBuffer));
+  nsCOMPtr<nsIRunnable> r =
+    NS_NewRunnableMethod(this, &OmxDataDecoder::SendEosBuffer);
+  mOmxTaskQueue->Dispatch(r.forget());
+
+  return NS_OK;
 }
 
-void
+nsresult
 OmxDataDecoder::Shutdown()
 {
   LOG("");
 
   mShuttingDown = true;
 
-  mOmxTaskQueue->Dispatch(NewRunnableMethod(this, &OmxDataDecoder::DoAsyncShutdown));
+  nsCOMPtr<nsIRunnable> r =
+    NS_NewRunnableMethod(this, &OmxDataDecoder::DoAsyncShutdown);
+  mOmxTaskQueue->Dispatch(r.forget());
 
   {
     // DoAsyncShutdown() will be running for a while, it could be still running
@@ -244,6 +260,8 @@ OmxDataDecoder::Shutdown()
 
   mOmxTaskQueue->BeginShutdown();
   mOmxTaskQueue->AwaitShutdownAndIdle();
+
+  return NS_OK;
 }
 
 void
@@ -430,10 +448,10 @@ OmxDataDecoder::EmptyBufferFailure(OmxBufferFailureHolder aFailureHolder)
 }
 
 void
-OmxDataDecoder::NotifyError(OMX_ERRORTYPE aOmxError, const char* aLine, const MediaResult& aError)
+OmxDataDecoder::NotifyError(OMX_ERRORTYPE aError, const char* aLine)
 {
-  LOG("NotifyError %d (%d) at %s", aOmxError, aError.Code(), aLine);
-  mCallback->Error(aError);
+  LOG("NotifyError %d at %s", aError, aLine);
+  mCallback->Error();
 }
 
 void
@@ -551,13 +569,13 @@ OmxDataDecoder::ResolveInitPromise(const char* aMethodName)
 }
 
 void
-OmxDataDecoder::RejectInitPromise(MediaResult aError, const char* aMethodName)
+OmxDataDecoder::RejectInitPromise(DecoderFailureReason aReason, const char* aMethodName)
 {
   RefPtr<OmxDataDecoder> self = this;
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableFunction([self, aError, aMethodName] () {
+    NS_NewRunnableFunction([self, aReason, aMethodName] () {
       MOZ_ASSERT(self->mReaderTaskQueue->IsCurrentThreadIn());
-      self->mInitPromise.RejectIfExists(aError, aMethodName);
+      self->mInitPromise.RejectIfExists(aReason, aMethodName);
     });
   mReaderTaskQueue->Dispatch(r.forget());
 }
@@ -583,7 +601,7 @@ OmxDataDecoder::OmxStateRunner()
                MOZ_ASSERT(self->mOmxState == OMX_StateIdle);
              },
              [self] () {
-               self->RejectInitPromise(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
+               self->RejectInitPromise(DecoderFailureReason::INIT_ERROR, __func__);
              });
 
     // Allocate input and output buffers.
@@ -591,7 +609,7 @@ OmxDataDecoder::OmxStateRunner()
     for(const auto id : types) {
       if (NS_FAILED(AllocateBuffers(id))) {
         LOG("Failed to allocate buffer on port %d", id);
-        RejectInitPromise(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
+        RejectInitPromise(DecoderFailureReason::INIT_ERROR, __func__);
         break;
       }
     }
@@ -606,7 +624,7 @@ OmxDataDecoder::OmxStateRunner()
                self->ResolveInitPromise(__func__);
              },
              [self] () {
-               self->RejectInitPromise(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
+               self->RejectInitPromise(DecoderFailureReason::INIT_ERROR, __func__);
              });
   } else if (mOmxState == OMX_StateExecuting) {
     // Configure codec once it gets OMX_StateExecuting state.
@@ -690,8 +708,7 @@ OmxDataDecoder::Event(OMX_EVENTTYPE aEvent, OMX_U32 aData1, OMX_U32 aData2)
     {
       // Got error during decoding, send msg to MFR skipping to next key frame.
       if (aEvent == OMX_EventError && mOmxState == OMX_StateExecuting) {
-        NotifyError((OMX_ERRORTYPE)aData1, __func__,
-                    MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, __func__));
+        NotifyError((OMX_ERRORTYPE)aData1, __func__);
         return true;
       }
       LOG("WARNING: got none handle event: %d, aData1: %d, aData2: %d",
@@ -1018,15 +1035,15 @@ MediaDataHelper::CreateYUV420VideoData(BufferData* aBufferData)
 
   VideoInfo info(*mTrackInfo->GetAsVideoInfo());
   RefPtr<VideoData> data =
-    VideoData::CreateAndCopyData(info,
-                                 mImageContainer,
-                                 0, // Filled later by caller.
-                                 0, // Filled later by caller.
-                                 1, // We don't know the duration.
-                                 b,
-                                 0, // Filled later by caller.
-                                 -1,
-                                 info.ImageRect());
+    VideoData::Create(info,
+                      mImageContainer,
+                      0, // Filled later by caller.
+                      0, // Filled later by caller.
+                      1, // We don't know the duration.
+                      b,
+                      0, // Filled later by caller.
+                      -1,
+                      info.mImage);
 
   LOG("YUV420 VideoData: disp width %d, height %d, pic width %d, height %d, time %ld",
       info.mDisplay.width, info.mDisplay.height, info.mImage.width,

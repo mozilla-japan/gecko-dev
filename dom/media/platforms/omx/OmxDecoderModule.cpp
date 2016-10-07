@@ -12,19 +12,25 @@
 namespace mozilla {
 
 already_AddRefed<MediaDataDecoder>
-OmxDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
+OmxDecoderModule::CreateVideoDecoder(const VideoInfo& aConfig,
+                                     mozilla::layers::LayersBackend aLayersBackend,
+                                     mozilla::layers::ImageContainer* aImageContainer,
+                                     FlushableTaskQueue* aVideoTaskQueue,
+                                     MediaDataDecoderCallback* aCallback)
 {
-  RefPtr<OmxDataDecoder> decoder = new OmxDataDecoder(aParams.mConfig,
-                                                      aParams.mCallback,
-                                                      aParams.mImageContainer);
+  RefPtr<OmxDataDecoder> decoder = new OmxDataDecoder(aConfig,
+                                                      aCallback,
+                                                      aImageContainer);
   return decoder.forget();
 }
 
 already_AddRefed<MediaDataDecoder>
-OmxDecoderModule::CreateAudioDecoder(const CreateDecoderParams& aParams)
+OmxDecoderModule::CreateAudioDecoder(const AudioInfo& aConfig,
+                                     FlushableTaskQueue* aAudioTaskQueue,
+                                     MediaDataDecoderCallback* aCallback)
 {
-  RefPtr<OmxDataDecoder> decoder = new OmxDataDecoder(aParams.mConfig,
-                                                      aParams.mCallback,
+  RefPtr<OmxDataDecoder> decoder = new OmxDataDecoder(aConfig,
+                                                      aCallback,
                                                       nullptr);
   return decoder.forget();
 }
@@ -36,8 +42,7 @@ OmxDecoderModule::DecoderNeedsConversion(const TrackInfo& aConfig) const
 }
 
 bool
-OmxDecoderModule::SupportsMimeType(const nsACString& aMimeType,
-                                   DecoderDoctorDiagnostics* aDiagnostics) const
+OmxDecoderModule::SupportsMimeType(const nsACString& aMimeType) const
 {
   return OmxPlatformLayer::SupportsMimeType(aMimeType);
 }

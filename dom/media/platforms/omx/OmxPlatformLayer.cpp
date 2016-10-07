@@ -19,7 +19,9 @@
 #undef LOG
 #endif
 
-#define LOG(arg, ...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, ("OmxPlatformLayer -- %s: " arg, __func__, ##__VA_ARGS__))
+extern mozilla::LogModule* GetPDMLog();
+
+#define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("OmxPlatformLayer -- %s: " arg, __func__, ##__VA_ARGS__))
 
 #define RETURN_IF_ERR(err)     \
   if (err != OMX_ErrorNone) {  \
@@ -279,7 +281,7 @@ OmxPlatformLayer::CompressionFormat()
     return OMX_VIDEO_CodingMPEG4;
   } else if (mInfo->mMimeType.EqualsLiteral("video/3gpp")) {
     return OMX_VIDEO_CodingH263;
-  } else if (VPXDecoder::IsVP8(mInfo->mMimeType)) {
+  } else if (VPXDecoder::IsVPX(mInfo->mMimeType)) {
     return static_cast<OMX_VIDEO_CODINGTYPE>(OMX_VIDEO_CodingVP8);
   } else {
     MOZ_ASSERT_UNREACHABLE("Unsupported compression format");

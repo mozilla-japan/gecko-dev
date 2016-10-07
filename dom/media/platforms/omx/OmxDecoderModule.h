@@ -14,13 +14,18 @@ namespace mozilla {
 class OmxDecoderModule : public PlatformDecoderModule {
 public:
   already_AddRefed<MediaDataDecoder>
-  CreateVideoDecoder(const CreateDecoderParams& aParams) override;
+  CreateVideoDecoder(const VideoInfo& aConfig,
+                     mozilla::layers::LayersBackend aLayersBackend,
+                     mozilla::layers::ImageContainer* aImageContainer,
+                     FlushableTaskQueue* aVideoTaskQueue,
+                     MediaDataDecoderCallback* aCallback) override;
 
   already_AddRefed<MediaDataDecoder>
-  CreateAudioDecoder(const CreateDecoderParams& aParams) override;
+  CreateAudioDecoder(const AudioInfo& aConfig,
+                     FlushableTaskQueue* aAudioTaskQueue,
+                     MediaDataDecoderCallback* aCallback) override;
 
-  bool SupportsMimeType(const nsACString& aMimeType,
-                        DecoderDoctorDiagnostics* aDiagnostics) const override;
+  bool SupportsMimeType(const nsACString& aMimeType) const override;
 
   ConversionRequired DecoderNeedsConversion(const TrackInfo& aConfig) const override;
 };

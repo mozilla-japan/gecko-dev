@@ -66,18 +66,13 @@ public:
 
   RefPtr<InitPromise> Init() override;
 
-  void Input(MediaRawData* aSample) override;
+  nsresult Input(MediaRawData* aSample) override;
 
-  void Flush() override;
+  nsresult Flush() override;
 
-  void Drain() override;
+  nsresult Drain() override;
 
-  void Shutdown() override;
-
-  const char* GetDescriptionName() const override
-  {
-    return "omx decoder";
-  }
+  nsresult Shutdown() override;
 
   // Return true if event is handled.
   bool Event(OMX_EVENTTYPE aEvent, OMX_U32 aData1, OMX_U32 aData2);
@@ -87,7 +82,7 @@ protected:
 
   void ResolveInitPromise(const char* aMethodName);
 
-  void RejectInitPromise(MediaResult aError, const char* aMethodName);
+  void RejectInitPromise(DecoderFailureReason aReason, const char* aMethodName);
 
   void OmxStateRunner();
 
@@ -102,8 +97,7 @@ protected:
   void EmptyBufferFailure(OmxBufferFailureHolder aFailureHolder);
 
   void NotifyError(OMX_ERRORTYPE aOmxError,
-                   const char* aLine,
-                   const MediaResult& aError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR));
+                   const char* aLine);
 
   // Configure audio/video codec.
   // Some codec may just ignore this and rely on codec specific data in

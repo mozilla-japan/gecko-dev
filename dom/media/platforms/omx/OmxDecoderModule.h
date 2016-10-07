@@ -25,8 +25,6 @@ public:
                      FlushableTaskQueue* aAudioTaskQueue,
                      MediaDataDecoderCallback* aCallback) override;
 
-  static void Init();
-
   bool SupportsMimeType(const nsACString& aMimeType) const override;
 
   ConversionRequired DecoderNeedsConversion(const TrackInfo& aConfig) const override;

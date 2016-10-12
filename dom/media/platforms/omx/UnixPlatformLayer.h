@@ -39,11 +39,14 @@ public:
                                      OMX_PTR aComponentParameterStructure,
                                      OMX_U32 aComponentParameterSize) override;
 
-  virtual OMX_ERRORTYPE SetParameter(OMX_INDEXTYPE nIndex,
+  virtual OMX_ERRORTYPE SetParameter(OMX_INDEXTYPE aParamIndex,
                                      OMX_PTR aComponentParameterStructure,
                                      OMX_U32 aComponentParameterSize) override;
 
   virtual nsresult Shutdown() override;
+
+protected:
+  OMX_HANDLETYPE mComponent;
 };
 
 }

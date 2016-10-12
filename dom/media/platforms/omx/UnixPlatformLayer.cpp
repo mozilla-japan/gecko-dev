@@ -21,6 +21,7 @@ namespace mozilla {
 UnixPlatformLayer::UnixPlatformLayer(OmxDataDecoder* aDataDecoder,
                                      OmxPromiseLayer* aPromiseLayer,
                                      TaskQueue* aTaskQueue)
+  : mComponent(nullptr)
 {
   LOG("");
 }
@@ -57,7 +58,7 @@ UnixPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
                                OMX_PTR aCmdData)
 {
   LOG("");
-  return OMX_ErrorUndefined;
+  return OMX_SendCommand(mComponent, aCmd, aParam1, aCmdData);
 }
 
 nsresult
@@ -80,7 +81,7 @@ OMX_ERRORTYPE
 UnixPlatformLayer::GetState(OMX_STATETYPE* aType)
 {
   LOG("");
-  return OMX_ErrorUndefined;
+  return OMX_GetState(mComponent, aType);
 }
 
 OMX_ERRORTYPE
@@ -89,16 +90,22 @@ UnixPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
                                 OMX_U32 aComponentParameterSize)
 {
   LOG("");
-  return OMX_ErrorUndefined;
+  // TODO: Should check the struct size?
+  return OMX_GetParameter(mComponent,
+                          aParamIndex,
+                          aComponentParameterStructure);
 }
 
 OMX_ERRORTYPE
-UnixPlatformLayer::SetParameter(OMX_INDEXTYPE nIndex,
+UnixPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
                                 OMX_PTR aComponentParameterStructure,
                                 OMX_U32 aComponentParameterSize)
 {
   LOG("");
-  return OMX_ErrorUndefined;
+  // TODO: Should check the struct size?
+  return OMX_SetParameter(mComponent,
+                          aParamIndex,
+                          aComponentParameterStructure);
 }
 
 nsresult

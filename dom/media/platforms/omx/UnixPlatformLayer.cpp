@@ -1,0 +1,111 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "OmxDataDecoder.h"
+#include "OmxPromiseLayer.h"
+#include "UnixPlatformLayer.h"
+
+#ifdef LOG
+#undef LOG
+#endif
+
+extern mozilla::LogModule* GetPDMLog();
+
+#define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("UnixPlatformLayer:: " arg, ##__VA_ARGS__))
+
+namespace mozilla {
+
+UnixPlatformLayer::UnixPlatformLayer(OmxDataDecoder* aDataDecoder,
+                                     OmxPromiseLayer* aPromiseLayer,
+                                     TaskQueue* aTaskQueue)
+{
+  LOG("");
+}
+
+UnixPlatformLayer::~UnixPlatformLayer()
+{
+  LOG("");
+}
+
+OMX_ERRORTYPE
+UnixPlatformLayer::InitOmxToStateLoaded(const TrackInfo* aInfo)
+{
+  LOG("");
+  return OMX_ErrorUndefined;
+}
+
+OMX_ERRORTYPE
+UnixPlatformLayer::EmptyThisBuffer(BufferData* aData)
+{
+  LOG("");
+  return OMX_ErrorUndefined;
+}
+
+OMX_ERRORTYPE
+UnixPlatformLayer::FillThisBuffer(BufferData* aData)
+{
+  LOG("");
+  return OMX_ErrorUndefined;
+}
+
+OMX_ERRORTYPE
+UnixPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
+                               OMX_U32 aParam1,
+                               OMX_PTR aCmdData)
+{
+  LOG("");
+  return OMX_ErrorUndefined;
+}
+
+nsresult
+UnixPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
+                                     BUFFERLIST* aBufferList)
+{
+  LOG("");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+nsresult
+UnixPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
+                                    BUFFERLIST* aBufferList)
+{
+  LOG("");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+OMX_ERRORTYPE
+UnixPlatformLayer::GetState(OMX_STATETYPE* aType)
+{
+  LOG("");
+  return OMX_ErrorUndefined;
+}
+
+OMX_ERRORTYPE
+UnixPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
+                                OMX_PTR aComponentParameterStructure,
+                                OMX_U32 aComponentParameterSize)
+{
+  LOG("");
+  return OMX_ErrorUndefined;
+}
+
+OMX_ERRORTYPE
+UnixPlatformLayer::SetParameter(OMX_INDEXTYPE nIndex,
+                                OMX_PTR aComponentParameterStructure,
+                                OMX_U32 aComponentParameterSize)
+{
+  LOG("");
+  return OMX_ErrorUndefined;
+}
+
+nsresult
+UnixPlatformLayer::Shutdown()
+{
+  LOG("");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+}

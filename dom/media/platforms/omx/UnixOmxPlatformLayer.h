@@ -14,8 +14,8 @@ namespace mozilla {
 class UnixOmxPlatformLayer : public OmxPlatformLayer {
 public:
   UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
-                    OmxPromiseLayer* aPromiseLayer,
-                    TaskQueue* aTaskQueue);
+                       OmxPromiseLayer* aPromiseLayer,
+                       TaskQueue* aTaskQueue);
 
   virtual ~UnixOmxPlatformLayer();
 

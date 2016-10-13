@@ -4,20 +4,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if !defined(UnixPlatformLayer_h_)
-#define UnixPlatformLayer_h_
+#if !defined(UnixOmxPlatformLayer_h_)
+#define UnixOmxPlatformLayer_h_
 
 #include "OmxPlatformLayer.h"
 
 namespace mozilla {
 
-class UnixPlatformLayer : public OmxPlatformLayer {
+class UnixOmxPlatformLayer : public OmxPlatformLayer {
 public:
-  UnixPlatformLayer(OmxDataDecoder* aDataDecoder,
+  UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                     OmxPromiseLayer* aPromiseLayer,
                     TaskQueue* aTaskQueue);
 
-  virtual ~UnixPlatformLayer();
+  virtual ~UnixOmxPlatformLayer();
 
   virtual OMX_ERRORTYPE InitOmxToStateLoaded(const TrackInfo* aInfo) override;
 
@@ -51,4 +51,4 @@ protected:
 
 }
 
-#endif // UnixPlatformLayer_h_
+#endif // UnixOmxPlatformLayer_h_

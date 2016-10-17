@@ -56,9 +56,14 @@ OmxCoreLibLinker::Link()
       if (Bind(lib)) {
         sLibName = lib;
         sLinkStatus = LinkStatus_SUCCEEDED;
+        LOG("Succeeded to load %s", lib);
         return true;
+      } else {
+        LOG("Failed to link %s", lib);
       }
       Unlink();
+    } else {
+      LOG("Failed to load %s", lib);
     }
   }
 

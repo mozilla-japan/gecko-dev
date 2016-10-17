@@ -16,7 +16,7 @@
 
 extern mozilla::LogModule* GetPDMLog();
 
-#define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("UnixOmxPlatformLayer:: " arg, ##__VA_ARGS__))
+#define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("OmxCoreLibLinker::%s: " arg, __func__, ##__VA_ARGS__))
 
 namespace mozilla
 {

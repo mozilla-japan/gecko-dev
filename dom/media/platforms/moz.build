@@ -55,6 +55,14 @@ if CONFIG['MOZ_FFMPEG']:
         'ffmpeg',
     ]
 
+if CONFIG['MOZ_WIDGET_GTK']:
+    EXPORTS += [
+        'omx/OmxCoreLibLinker.h',
+    ]
+    UNIFIED_SOURCES += [
+        'omx/OmxCoreLibLinker.cpp',
+    ]
+
 if CONFIG['MOZ_APPLEMEDIA']:
   EXPORTS += [
       'apple/AppleDecoderModule.h',

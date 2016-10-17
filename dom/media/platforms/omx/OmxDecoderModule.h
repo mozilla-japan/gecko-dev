@@ -13,6 +13,9 @@ namespace mozilla {
 
 class OmxDecoderModule : public PlatformDecoderModule {
 public:
+  // Called on main thread.
+  static void Init();
+
   already_AddRefed<MediaDataDecoder>
   CreateVideoDecoder(const VideoInfo& aConfig,
                      mozilla::layers::LayersBackend aLayersBackend,

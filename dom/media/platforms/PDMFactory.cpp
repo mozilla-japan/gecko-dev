@@ -21,6 +21,9 @@
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidDecoderModule.h"
 #endif
+#ifdef MOZ_WIDGET_GTK
+#include "OmxDecoderModule.h"
+#endif
 #include "GMPDecoderModule.h"
 
 #include "mozilla/Preferences.h"
@@ -58,6 +61,9 @@ bool PDMFactory::sFFmpegDecoderEnabled = false;
 #endif
 #ifdef XP_WIN
 bool PDMFactory::sWMFDecoderEnabled = false;
+#endif
+#ifdef MOZ_WIDGET_GTK
+bool PDMFactory::sOmxDecoderEnabled = false;
 #endif
 
 bool PDMFactory::sEnableFuzzingWrapper = false;
@@ -98,6 +104,10 @@ PDMFactory::Init()
   Preferences::AddBoolVarCache(&sWMFDecoderEnabled,
                                "media.wmf.enabled", false);
 #endif
+#ifdef MOZ_WIDGET_GTK
+  Preferences::AddBoolVarCache(&sOmxDecoderEnabled,
+                               "media.pdm-omx.enabled", false);
+#endif
 
   Preferences::AddBoolVarCache(&sEnableFuzzingWrapper,
                                "media.decoder.fuzzing.enabled", false);
@@ -115,7 +125,9 @@ PDMFactory::Init()
 #ifdef MOZ_FFMPEG
   FFmpegRuntimeLinker::Link();
 #endif
-  GMPDecoderModule::Init();
+#ifdef MOZ_WIDGET_GTK
+  OmxDecoderModule::Init();
+#endif
 }
 
 PDMFactory::PDMFactory()
@@ -281,6 +293,12 @@ PDMFactory::CreatePDMs()
 #ifdef MOZ_WIDGET_ANDROID
   if(sAndroidMCDecoderEnabled){
     m = new AndroidDecoderModule();
+    StartupPDM(m);
+  }
+#endif
+#ifdef MOZ_WIDGET_GTK
+  if (sOmxDecoderEnabled) {
+    m = new OmxDecoderModule();
     StartupPDM(m);
   }
 #endif

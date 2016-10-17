@@ -21,6 +21,7 @@ public:
 private:
   static PRLibrary* sLinkedLib;
   static const char* sLibName;
+  static const char* sLibs[];
 
   static bool Bind(const char* aLibName);
 

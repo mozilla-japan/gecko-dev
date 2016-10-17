@@ -24,7 +24,7 @@ namespace mozilla
 OmxCoreLibLinker::LinkStatus OmxCoreLibLinker::sLinkStatus =
   LinkStatus_INIT;
 
-static const char* sLibs[] = {
+const char* OmxCoreLibLinker::sLibs[] = {
   "/usr/local/lib/libomxr_core.so", // Renesas (R-Car, RZ/G): Our first target
   //"/opt/vc/lib/libopenmaxil.so", // Raspberry Pi: Our next target
   "libomxil-bellagio.so.0", // Bellagio (An OSS implementation of OpenMAX IL)
@@ -40,6 +40,8 @@ const char* OmxCoreLibLinker::sLibName = nullptr;
 /* static */ bool
 OmxCoreLibLinker::Link()
 {
+  LOG("");
+
   if (sLinkStatus) {
     return sLinkStatus == LinkStatus_SUCCEEDED;
   }
@@ -90,6 +92,8 @@ OmxCoreLibLinker::Bind(const char* aLibName)
 /* static */ void
 OmxCoreLibLinker::Unlink()
 {
+  LOG("");
+
   if (sLinkedLib) {
     PR_UnloadLibrary(sLinkedLib);
     sLinkedLib = nullptr;

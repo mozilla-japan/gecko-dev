@@ -7,6 +7,7 @@
 #include "OmxDataDecoder.h"
 #include "OmxPromiseLayer.h"
 #include "UnixOmxPlatformLayer.h"
+#include "OmxCoreLibLinker.h"
 
 #ifdef LOG
 #undef LOG
@@ -17,6 +18,22 @@ extern mozilla::LogModule* GetPDMLog();
 #define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("UnixOmxPlatformLayer(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
 namespace mozilla {
+
+#define OMX_FUNC(func) extern typeof(func)* func;
+#include "OmxFunctionList.h"
+#undef OMX_FUNC
+
+/* static */ void
+UnixOmxPlatformLayer::Init(void)
+{
+  OmxCoreLibLinker::Link();
+  OMX_ERRORTYPE err = OMX_Init();
+  if (err != OMX_ErrorNone) {
+    MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
+            ("UnixOmxPlatformLayer::%s: Failed to initialize OMXCore: 0x%08x",
+             __func__, err));
+  }
+}
 
 UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                                            OmxPromiseLayer* aPromiseLayer,

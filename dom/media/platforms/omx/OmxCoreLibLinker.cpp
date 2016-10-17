@@ -84,7 +84,7 @@ OmxCoreLibLinker::Bind(const char* aLibName)
   }
 #include "OmxFunctionList.h"
 #undef OMX_FUNC
-  return false;
+  return true;
 }
 
 /* static */ void

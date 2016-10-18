@@ -17,7 +17,8 @@ public:
 
   UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                        OmxPromiseLayer* aPromiseLayer,
-                       TaskQueue* aTaskQueue);
+                       TaskQueue* aTaskQueue,
+                       layers::ImageContainer* aImageContainer);
 
   virtual ~UnixOmxPlatformLayer();
 
@@ -49,6 +50,10 @@ public:
 
 protected:
   OMX_HANDLETYPE mComponent;
+  RefPtr<OmxDataDecoder> mDataDecoder;
+  RefPtr<OmxPromiseLayer> mPromiseLayer;
+  RefPtr<TaskQueue> mTaskQueue;
+  RefPtr<layers::ImageContainer> mImageContainer;
 };
 
 }

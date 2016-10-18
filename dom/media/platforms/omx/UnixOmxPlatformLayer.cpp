@@ -37,8 +37,13 @@ UnixOmxPlatformLayer::Init(void)
 
 UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                                            OmxPromiseLayer* aPromiseLayer,
-                                           TaskQueue* aTaskQueue)
+                                           TaskQueue* aTaskQueue,
+                                           layers::ImageContainer* aImageContainer)
   : mComponent(nullptr)
+  , mDataDecoder(aDataDecoder)
+  , mPromiseLayer(aPromiseLayer)
+  , mTaskQueue(aTaskQueue)
+  , mImageContainer(aImageContainer)
 {
   LOG("");
 }

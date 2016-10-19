@@ -15,6 +15,8 @@ class UnixOmxPlatformLayer : public OmxPlatformLayer {
 public:
   static void Init(void);
 
+  static bool SupportsMimeType(const nsACString& aMimeType);
+
   UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                        OmxPromiseLayer* aPromiseLayer,
                        TaskQueue* aTaskQueue,
@@ -48,7 +50,26 @@ public:
 
   virtual nsresult Shutdown() override;
 
+  static OMX_ERRORTYPE EventHandler(OMX_HANDLETYPE hComponent,
+                                    OMX_PTR pAppData,
+                                    OMX_EVENTTYPE eEvent,
+                                    OMX_U32 nData1,
+                                    OMX_U32 nData2,
+                                    OMX_PTR pEventData);
+  static OMX_ERRORTYPE EmptyBufferDone(OMX_HANDLETYPE hComponent,
+                                       OMX_IN OMX_PTR pAppData,
+                                       OMX_IN OMX_BUFFERHEADERTYPE* pBuffer);
+  static OMX_ERRORTYPE FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
+                                      OMX_OUT OMX_PTR pAppData,
+                                      OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer);
+
 protected:
+  void CreateComponentRenesas(void);
+  static bool SupportsMimeTypeRenesas(const nsACString& aMimeType);
+
+protected:
+  static OMX_CALLBACKTYPE callbacks;
+
   OMX_HANDLETYPE mComponent;
   RefPtr<OmxDataDecoder> mDataDecoder;
   RefPtr<OmxPromiseLayer> mPromiseLayer;

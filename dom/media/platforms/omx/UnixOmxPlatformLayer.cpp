@@ -35,6 +35,36 @@ UnixOmxPlatformLayer::Init(void)
   }
 }
 
+/* static */ OMX_ERRORTYPE
+UnixOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
+                                   OMX_PTR pAppData,
+                                   OMX_EVENTTYPE eEvent,
+                                   OMX_U32 nData1,
+                                   OMX_U32 nData2,
+                                   OMX_PTR pEventData)
+{
+  return OMX_ErrorUndefined;
+}
+
+/* static */ OMX_ERRORTYPE
+UnixOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
+                                      OMX_IN OMX_PTR pAppData,
+                                      OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
+{
+  return OMX_ErrorUndefined;
+}
+
+/* static */ OMX_ERRORTYPE
+UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
+                                     OMX_OUT OMX_PTR pAppData,
+                                     OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
+{
+  return OMX_ErrorUndefined;
+}
+
+/* static */ OMX_CALLBACKTYPE UnixOmxPlatformLayer::callbacks =
+  { EventHandler, EmptyBufferDone, FillBufferDone };
+
 UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                                            OmxPromiseLayer* aPromiseLayer,
                                            TaskQueue* aTaskQueue,
@@ -51,13 +81,26 @@ UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
 UnixOmxPlatformLayer::~UnixOmxPlatformLayer()
 {
   LOG("");
+  OMX_FreeHandle(mComponent);
 }
 
 OMX_ERRORTYPE
 UnixOmxPlatformLayer::InitOmxToStateLoaded(const TrackInfo* aInfo)
 {
   LOG("");
-  return OMX_ErrorUndefined;
+
+  if (!aInfo)
+    return OMX_ErrorUndefined;
+  mInfo = aInfo;
+
+  CreateComponentRenesas();
+
+  if (mComponent) {
+    return OMX_ErrorNone;
+  } else {
+    LOG("Failed to create the component for %s", mInfo->mMimeType.Data());
+    return OMX_ErrorUndefined;
+  }
 }
 
 OMX_ERRORTYPE
@@ -80,6 +123,8 @@ UnixOmxPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
                                   OMX_PTR aCmdData)
 {
   LOG("");
+  if (!mComponent)
+    return OMX_ErrorUndefined;
   return OMX_SendCommand(mComponent, aCmd, aParam1, aCmdData);
 }
 
@@ -103,6 +148,8 @@ OMX_ERRORTYPE
 UnixOmxPlatformLayer::GetState(OMX_STATETYPE* aType)
 {
   LOG("");
+  if (!mComponent)
+    return OMX_ErrorUndefined;
   return OMX_GetState(mComponent, aType);
 }
 
@@ -112,6 +159,10 @@ UnixOmxPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
                                    OMX_U32 aComponentParameterSize)
 {
   LOG("");
+
+  if (!mComponent)
+    return OMX_ErrorUndefined;
+
   // TODO: Should check the struct size?
   return OMX_GetParameter(mComponent,
                           aParamIndex,
@@ -124,6 +175,10 @@ UnixOmxPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
                                    OMX_U32 aComponentParameterSize)
 {
   LOG("");
+
+  if (!mComponent)
+    return OMX_ErrorUndefined;
+
   // TODO: Should check the struct size?
   return OMX_SetParameter(mComponent,
                           aParamIndex,
@@ -135,6 +190,60 @@ UnixOmxPlatformLayer::Shutdown()
 {
   LOG("");
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+bool
+UnixOmxPlatformLayer::SupportsMimeType(const nsACString& aMimeType)
+{
+  return SupportsMimeTypeRenesas(aMimeType);
+}
+
+bool
+UnixOmxPlatformLayer::SupportsMimeTypeRenesas(const nsACString& aMimeType)
+{
+  const char* mime = aMimeType.Data();
+  MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
+          ("OmxPlatformLayer::%s: aMimeType: %s",
+           __func__, mime));
+
+  if (aMimeType.EqualsLiteral("video/avc") ||
+      aMimeType.EqualsLiteral("video/mp4") ||
+      aMimeType.EqualsLiteral("video/mp4v-es")) {
+    return true;
+  }
+
+  if (aMimeType.EqualsLiteral("audio/mp4a-latm")) {
+    return true;
+  }
+
+  return false;
+}
+
+void
+UnixOmxPlatformLayer::CreateComponentRenesas(void)
+{
+  if (mInfo->GetAsVideoInfo()) {
+    // This is video decoding.
+    if (mInfo->mMimeType.EqualsLiteral("video/avc") ||
+        mInfo->mMimeType.EqualsLiteral("video/mp4") ||
+        mInfo->mMimeType.EqualsLiteral("video/mp4v-es")) {
+      OMX_GetHandle(&mComponent,
+                    "OMX.RENESAS.VIDEO.DECODER.H264",
+                    this,
+                    &callbacks);
+    }
+  } else if (mInfo->GetAsAudioInfo()) {
+    // This is audio decoding.
+    if (mInfo->mMimeType.EqualsLiteral("audio/mp4a-latm")) {
+      // TODO:
+      // RZ/G1 doesn't have this component so creating it will fail on
+      // the board.
+      OMX_GetHandle(&mComponent,
+                    "OMX.RENESAS.AUDIO.DECODER.AAC",
+                    this,
+                    &callbacks);
+    }
+  }
 }
 
 }

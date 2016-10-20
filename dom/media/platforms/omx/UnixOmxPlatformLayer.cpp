@@ -74,6 +74,7 @@ UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
   , mPromiseLayer(aPromiseLayer)
   , mTaskQueue(aTaskQueue)
   , mImageContainer(aImageContainer)
+  , mDummyMode(false)
 {
   LOG("");
 }
@@ -142,9 +143,16 @@ OMX_ERRORTYPE
 UnixOmxPlatformLayer::GetState(OMX_STATETYPE* aType)
 {
   LOG("");
-  if (!mComponent)
-    return OMX_ErrorUndefined;
-  return OMX_GetState(mComponent, aType);
+
+  if (mComponent)
+    return OMX_GetState(mComponent, aType);
+
+  if (mDummyMode) {
+    if (aType)
+      *aType = OMX_StateLoaded;
+    return OMX_ErrorNone;
+  }
+  return OMX_ErrorUndefined;
 }
 
 OMX_ERRORTYPE
@@ -154,8 +162,11 @@ UnixOmxPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
 {
   LOG("aParamIndex: 0x%08x", aParamIndex);
 
-  if (!mComponent)
+  if (!mComponent) {
+    if (mDummyMode)
+      return OMX_ErrorNone;
     return OMX_ErrorUndefined;
+  }
 
   // TODO: Should check the struct size?
   return OMX_GetParameter(mComponent,
@@ -170,8 +181,11 @@ UnixOmxPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
 {
   LOG("aParamIndex: 0x%08x", aParamIndex);
 
-  if (!mComponent)
+  if (!mComponent) {
+    if (mDummyMode)
+      return OMX_ErrorNone;
     return OMX_ErrorUndefined;
+  }
 
   // TODO: Should check the struct size?
   return OMX_SetParameter(mComponent,
@@ -232,13 +246,21 @@ UnixOmxPlatformLayer::CreateComponentRenesas(void)
   } else if (mInfo->GetAsAudioInfo()) {
     // This is audio decoding.
     if (mInfo->mMimeType.EqualsLiteral("audio/mp4a-latm")) {
-      // TODO:
-      // RZ/G1 doesn't have this component so creating it will fail on
-      // the board.
       err = OMX_GetHandle(&mComponent,
                           "OMX.RENESAS.AUDIO.DECODER.AAC",
                           this,
                           &callbacks);
+      // TODO:
+      // Although we want to demonstrate video decoding performance of RZ/G1
+      // series, most H.264 files aren't detected as playable because the
+      // board doesn't have OpenMAX IL component of AAC decoder. To avoid it we
+      // will use blnak data for audio at this moment.
+      // In the futuer we may have to implement other way (use GStreamer?).
+      if (err != OMX_ErrorNone) {
+        mDummyMode = true;
+        err = OMX_ErrorNone;
+        LOG("Use dummy mode for %s: 0x%08x", mime, err);
+      }
     }
   }
 

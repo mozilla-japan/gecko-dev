@@ -116,7 +116,7 @@ UnixOmxPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
                                   OMX_U32 aParam1,
                                   OMX_PTR aCmdData)
 {
-  LOG("");
+  LOG("aCmd: 0x%08x", aCmd);
   if (!mComponent)
     return OMX_ErrorUndefined;
   return OMX_SendCommand(mComponent, aCmd, aParam1, aCmdData);
@@ -126,7 +126,7 @@ nsresult
 UnixOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
                                         BUFFERLIST* aBufferList)
 {
-  LOG("");
+  LOG("aType: %d", aType);
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -134,7 +134,7 @@ nsresult
 UnixOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
                                        BUFFERLIST* aBufferList)
 {
-  LOG("");
+  LOG("aType: 0x%08x");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -152,7 +152,7 @@ UnixOmxPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
                                    OMX_PTR aComponentParameterStructure,
                                    OMX_U32 aComponentParameterSize)
 {
-  LOG("");
+  LOG("aParamIndex: 0x%08x", aParamIndex);
 
   if (!mComponent)
     return OMX_ErrorUndefined;
@@ -168,7 +168,7 @@ UnixOmxPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
                                    OMX_PTR aComponentParameterStructure,
                                    OMX_U32 aComponentParameterSize)
 {
-  LOG("");
+  LOG("aParamIndex: 0x%08x", aParamIndex);
 
   if (!mComponent)
     return OMX_ErrorUndefined;
@@ -217,6 +217,7 @@ OMX_ERRORTYPE
 UnixOmxPlatformLayer::CreateComponentRenesas(void)
 {
   OMX_ERRORTYPE err = OMX_ErrorUndefined;
+  const char* mime = mInfo->mMimeType.Data();
 
   if (mInfo->GetAsVideoInfo()) {
     // This is video decoding.
@@ -241,8 +242,9 @@ UnixOmxPlatformLayer::CreateComponentRenesas(void)
     }
   }
 
-  if (err != OMX_ErrorNone) {
-    const char* mime = mInfo->mMimeType.Data();
+  if (err == OMX_ErrorNone) {
+    LOG("Succeeded to create the component for %s", mime);
+  } else {
     LOG("Failed to create the component for %s: 0x%08x", mime, err);
   }
 

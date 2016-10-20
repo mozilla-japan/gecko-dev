@@ -124,10 +124,43 @@ UnixOmxPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
 }
 
 nsresult
+UnixOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType, OMX_PARAM_PORTDEFINITIONTYPE& portDef)
+{
+  nsTArray<uint32_t> portIndex;
+  GetPortIndices(portIndex);
+  for (auto idx : portIndex) {
+    InitOmxParameter(&portDef);
+    portDef.nPortIndex = idx;
+
+    OMX_ERRORTYPE err = GetParameter(OMX_IndexParamPortDefinition,
+                                     &portDef,
+                                     sizeof(OMX_PARAM_PORTDEFINITIONTYPE));
+    if (err != OMX_ErrorNone) {
+      return NS_ERROR_FAILURE;
+    } else if (portDef.eDir == aType) {
+      LOG("Found OMX_IndexParamPortDefinition: port: %d, type: %d",
+          portDef.nPortIndex, portDef.eDir);
+      return NS_OK;
+    }
+  }
+}
+
+nsresult
 UnixOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
                                         BUFFERLIST* aBufferList)
 {
   LOG("aType: %d", aType);
+
+  OMX_PARAM_PORTDEFINITIONTYPE portDef;
+  nsresult result = FindPortDefinition(aType, portDef);
+  if (result != NS_OK)
+    return result;
+
+  LOG("nBufferCountActual: %d, nBufferSize: %d",
+      portDef.nBufferCountActual, portDef.nBufferSize);
+
+  /* TODO: Allocate buffers */
+
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

@@ -64,8 +64,11 @@ public:
                                       OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer);
 
 protected:
-  OMX_ERRORTYPE CreateComponentRenesas(void);
   static bool SupportsMimeTypeRenesas(const nsACString& aMimeType);
+
+  OMX_ERRORTYPE CreateComponentRenesas(void);
+  nsresult FindPortDefinition(OMX_DIRTYPE aType,
+                              OMX_PARAM_PORTDEFINITIONTYPE& portDef);
 
 protected:
   static OMX_CALLBACKTYPE callbacks;

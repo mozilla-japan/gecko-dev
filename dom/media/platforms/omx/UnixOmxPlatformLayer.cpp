@@ -81,7 +81,8 @@ UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
 UnixOmxPlatformLayer::~UnixOmxPlatformLayer()
 {
   LOG("");
-  OMX_FreeHandle(mComponent);
+  if (mComponent)
+    OMX_FreeHandle(mComponent);
 }
 
 OMX_ERRORTYPE
@@ -93,14 +94,7 @@ UnixOmxPlatformLayer::InitOmxToStateLoaded(const TrackInfo* aInfo)
     return OMX_ErrorUndefined;
   mInfo = aInfo;
 
-  CreateComponentRenesas();
-
-  if (mComponent) {
-    return OMX_ErrorNone;
-  } else {
-    LOG("Failed to create the component for %s", mInfo->mMimeType.Data());
-    return OMX_ErrorUndefined;
-  }
+  return CreateComponentRenesas();
 }
 
 OMX_ERRORTYPE
@@ -219,18 +213,20 @@ UnixOmxPlatformLayer::SupportsMimeTypeRenesas(const nsACString& aMimeType)
   return false;
 }
 
-void
+OMX_ERRORTYPE
 UnixOmxPlatformLayer::CreateComponentRenesas(void)
 {
+  OMX_ERRORTYPE err = OMX_ErrorUndefined;
+
   if (mInfo->GetAsVideoInfo()) {
     // This is video decoding.
     if (mInfo->mMimeType.EqualsLiteral("video/avc") ||
         mInfo->mMimeType.EqualsLiteral("video/mp4") ||
         mInfo->mMimeType.EqualsLiteral("video/mp4v-es")) {
-      OMX_GetHandle(&mComponent,
-                    "OMX.RENESAS.VIDEO.DECODER.H264",
-                    this,
-                    &callbacks);
+      err = OMX_GetHandle(&mComponent,
+                          "OMX.RENESAS.VIDEO.DECODER.H264",
+                          this,
+                          &callbacks);
     }
   } else if (mInfo->GetAsAudioInfo()) {
     // This is audio decoding.
@@ -238,12 +234,19 @@ UnixOmxPlatformLayer::CreateComponentRenesas(void)
       // TODO:
       // RZ/G1 doesn't have this component so creating it will fail on
       // the board.
-      OMX_GetHandle(&mComponent,
-                    "OMX.RENESAS.AUDIO.DECODER.AAC",
-                    this,
-                    &callbacks);
+      err = OMX_GetHandle(&mComponent,
+                          "OMX.RENESAS.AUDIO.DECODER.AAC",
+                          this,
+                          &callbacks);
     }
   }
+
+  if (err != OMX_ErrorNone) {
+    const char* mime = mInfo->mMimeType.Data();
+    LOG("Failed to create the component for %s: 0x%08x", mime, err);
+  }
+
+  return err;
 }
 
 }

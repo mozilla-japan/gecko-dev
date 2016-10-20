@@ -64,7 +64,7 @@ public:
                                       OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer);
 
 protected:
-  void CreateComponentRenesas(void);
+  OMX_ERRORTYPE CreateComponentRenesas(void);
   static bool SupportsMimeTypeRenesas(const nsACString& aMimeType);
 
 protected:

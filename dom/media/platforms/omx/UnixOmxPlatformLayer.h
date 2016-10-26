@@ -78,8 +78,6 @@ protected:
   RefPtr<OmxPromiseLayer> mPromiseLayer;
   RefPtr<TaskQueue> mTaskQueue;
   RefPtr<layers::ImageContainer> mImageContainer;
-
-  bool mDummyMode;
 };
 
 }

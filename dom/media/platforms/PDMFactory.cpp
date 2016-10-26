@@ -274,6 +274,12 @@ PDMFactory::CreatePDMs()
     StartupPDM(m);
   }
 #endif
+#ifdef MOZ_WIDGET_GTK
+  if (sOmxDecoderEnabled) {
+    m = new OmxDecoderModule();
+    StartupPDM(m);
+  }
+#endif
 #ifdef MOZ_FFMPEG
   if (sFFmpegDecoderEnabled) {
     m = FFmpegRuntimeLinker::CreateDecoderModule();
@@ -293,12 +299,6 @@ PDMFactory::CreatePDMs()
 #ifdef MOZ_WIDGET_ANDROID
   if(sAndroidMCDecoderEnabled){
     m = new AndroidDecoderModule();
-    StartupPDM(m);
-  }
-#endif
-#ifdef MOZ_WIDGET_GTK
-  if (sOmxDecoderEnabled) {
-    m = new OmxDecoderModule();
     StartupPDM(m);
   }
 #endif

@@ -23,17 +23,32 @@ namespace mozilla {
 #include "OmxFunctionList.h"
 #undef OMX_FUNC
 
-UnixOmxBufferData::UnixOmxBufferData()
+UnixOmxBufferData::UnixOmxBufferData(const UnixOmxPlatformLayer& aUnixPlatformLayer,
+                                     const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef)
   : BufferData(nullptr)
+  , mUnixPlatformLayer(aUnixPlatformLayer)
+  , mPortDef(aPortDef)
 {
-  mBuffer = new OMX_BUFFERHEADERTYPE;
-  PodZero(mBuffer);
+  OMX_ERRORTYPE err = OMX_AllocateBuffer(mUnixPlatformLayer.GetComponent(),
+                                         &mBuffer,
+                                         mPortDef.nPortIndex,
+                                         this,
+                                         mPortDef.nBufferSize);
+  if (err != OMX_ErrorNone) {
+    LOG("Failed to allocate the buffer!: 0x%08x", err);
+  }
 }
 
 UnixOmxBufferData::~UnixOmxBufferData()
 {
-  delete mBuffer;
-  mBuffer = nullptr;
+  if (mBuffer) {
+    OMX_ERRORTYPE err = OMX_FreeBuffer(mUnixPlatformLayer.GetComponent(),
+                                       mPortDef.nPortIndex,
+                                       mBuffer);
+    if (err != OMX_ErrorNone) {
+      LOG("Failed to free the buffer!: 0x%08x", err);
+    }
+  }
 }
 
 /* static */ void
@@ -172,7 +187,7 @@ UnixOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
       portDef.nBufferCountActual, portDef.nBufferSize);
 
   for (OMX_U32 i = 0; i < portDef.nBufferCountActual; ++i) {
-    RefPtr<UnixOmxBufferData> buffer = new UnixOmxBufferData();
+    RefPtr<UnixOmxBufferData> buffer = new UnixOmxBufferData(*this, portDef);
     aBufferList->AppendElement(buffer);
   }
 

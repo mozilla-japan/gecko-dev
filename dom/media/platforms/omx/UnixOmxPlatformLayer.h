@@ -11,12 +11,19 @@
 
 namespace mozilla {
 
+class UnixOmxPlatformLayer;
+
 class UnixOmxBufferData : public OmxPromiseLayer::BufferData {
 protected:
   virtual ~UnixOmxBufferData();
 
 public:
-  UnixOmxBufferData();
+  UnixOmxBufferData(const UnixOmxPlatformLayer& aUnixPlatformLayer,
+                    const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef);
+
+protected:
+  const UnixOmxPlatformLayer& mUnixPlatformLayer;
+  const OMX_PARAM_PORTDEFINITIONTYPE mPortDef;
 };
 
 class UnixOmxPlatformLayer : public OmxPlatformLayer {
@@ -57,6 +64,8 @@ public:
                                      OMX_U32 aComponentParameterSize) override;
 
   virtual nsresult Shutdown() override;
+
+  OMX_HANDLETYPE GetComponent() const { return mComponent; };
 
   static OMX_ERRORTYPE EventHandler(OMX_HANDLETYPE hComponent,
                                     OMX_PTR pAppData,

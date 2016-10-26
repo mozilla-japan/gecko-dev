@@ -11,6 +11,14 @@
 
 namespace mozilla {
 
+class UnixOmxBufferData : public OmxPromiseLayer::BufferData {
+protected:
+  virtual ~UnixOmxBufferData();
+
+public:
+  UnixOmxBufferData();
+};
+
 class UnixOmxPlatformLayer : public OmxPlatformLayer {
 public:
   static void Init(void);

@@ -23,6 +23,19 @@ namespace mozilla {
 #include "OmxFunctionList.h"
 #undef OMX_FUNC
 
+UnixOmxBufferData::UnixOmxBufferData()
+  : BufferData(nullptr)
+{
+  mBuffer = new OMX_BUFFERHEADERTYPE;
+  PodZero(mBuffer);
+}
+
+UnixOmxBufferData::~UnixOmxBufferData()
+{
+  delete mBuffer;
+  mBuffer = nullptr;
+}
+
 /* static */ void
 UnixOmxPlatformLayer::Init(void)
 {
@@ -158,9 +171,12 @@ UnixOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
   LOG("nBufferCountActual: %d, nBufferSize: %d",
       portDef.nBufferCountActual, portDef.nBufferSize);
 
-  /* TODO: Allocate buffers */
+  for (OMX_U32 i = 0; i < portDef.nBufferCountActual; ++i) {
+    RefPtr<UnixOmxBufferData> buffer = new UnixOmxBufferData();
+    aBufferList->AppendElement(buffer);
+  }
 
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_OK;
 }
 
 nsresult
@@ -168,7 +184,15 @@ UnixOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
                                        BUFFERLIST* aBufferList)
 {
   LOG("aType: 0x%08x");
-  return NS_ERROR_NOT_IMPLEMENTED;
+
+  uint32_t len = aBufferList->Length();
+  for (uint32_t i = 0; i < len; i++) {
+    UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(aBufferList->ElementAt(i).get());
+    // TODO: Do release or something
+  }
+  aBufferList->Clear();
+
+  return NS_OK;
 }
 
 OMX_ERRORTYPE

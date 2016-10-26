@@ -21,6 +21,8 @@ public:
   UnixOmxBufferData(const UnixOmxPlatformLayer& aUnixPlatformLayer,
                     const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef);
 
+  OMX_DIRTYPE GetPortDirection() const { return mPortDef.eDir; };
+
 protected:
   const UnixOmxPlatformLayer& mUnixPlatformLayer;
   const OMX_PARAM_PORTDEFINITIONTYPE mPortDef;

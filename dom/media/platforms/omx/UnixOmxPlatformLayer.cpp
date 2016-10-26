@@ -71,7 +71,9 @@ UnixOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
                                    OMX_U32 nData2,
                                    OMX_PTR pEventData)
 {
-  return OMX_ErrorUndefined;
+  UnixOmxPlatformLayer* platformLayer = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  platformLayer->mPromiseLayer->Event(eEvent, nData1, nData2);
+  return OMX_ErrorNone;
 }
 
 /* static */ OMX_ERRORTYPE
@@ -79,7 +81,10 @@ UnixOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
                                       OMX_IN OMX_PTR pAppData,
                                       OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
 {
-  return OMX_ErrorUndefined;
+  UnixOmxPlatformLayer* platformLayer = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
+  platformLayer->mPromiseLayer->EmptyFillBufferDone(buffer->GetPortDirection(), buffer);
+  return OMX_ErrorNone;
 }
 
 /* static */ OMX_ERRORTYPE
@@ -87,7 +92,10 @@ UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
                                      OMX_OUT OMX_PTR pAppData,
                                      OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
 {
-  return OMX_ErrorUndefined;
+  UnixOmxPlatformLayer* platformLayer = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
+  platformLayer->mPromiseLayer->EmptyFillBufferDone(buffer->GetPortDirection(), buffer);
+  return OMX_ErrorNone;
 }
 
 /* static */ OMX_CALLBACKTYPE UnixOmxPlatformLayer::callbacks =
@@ -129,14 +137,14 @@ OMX_ERRORTYPE
 UnixOmxPlatformLayer::EmptyThisBuffer(BufferData* aData)
 {
   LOG("");
-  return OMX_ErrorUndefined;
+  return OMX_EmptyThisBuffer(mComponent, aData->mBuffer);
 }
 
 OMX_ERRORTYPE
 UnixOmxPlatformLayer::FillThisBuffer(BufferData* aData)
 {
   LOG("");
-  return OMX_ErrorUndefined;
+  return OMX_FillThisBuffer(mComponent, aData->mBuffer);
 }
 
 OMX_ERRORTYPE

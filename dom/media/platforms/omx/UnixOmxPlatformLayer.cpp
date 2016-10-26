@@ -265,7 +265,7 @@ nsresult
 UnixOmxPlatformLayer::Shutdown()
 {
   LOG("");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_OK;
 }
 
 bool

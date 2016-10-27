@@ -129,7 +129,8 @@ UnixOmxPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
 }
 
 nsresult
-UnixOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType, OMX_PARAM_PORTDEFINITIONTYPE& portDef)
+UnixOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType,
+                                         OMX_PARAM_PORTDEFINITIONTYPE& portDef)
 {
   nsTArray<uint32_t> portIndex;
   GetPortIndices(portIndex);
@@ -180,8 +181,8 @@ UnixOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
 
   uint32_t len = aBufferList->Length();
   for (uint32_t i = 0; i < len; i++) {
-    UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(aBufferList->ElementAt(i).get());
-    // TODO: Do release or something
+    UnixOmxBufferData* buffer =
+      static_cast<UnixOmxBufferData*>(aBufferList->ElementAt(i).get());
   }
   aBufferList->Clear();
 

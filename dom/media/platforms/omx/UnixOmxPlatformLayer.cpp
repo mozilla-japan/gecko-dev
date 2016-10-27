@@ -100,7 +100,7 @@ UnixOmxPlatformLayer::InitOmxToStateLoaded(const TrackInfo* aInfo)
     return OMX_ErrorUndefined;
   mInfo = aInfo;
 
-  return CreateComponentRenesas();
+  return CreateComponent();
 }
 
 OMX_ERRORTYPE
@@ -303,44 +303,71 @@ UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
 bool
 UnixOmxPlatformLayer::SupportsMimeType(const nsACString& aMimeType)
 {
-  return SupportsMimeTypeRenesas(aMimeType);
+  return FindStandardComponent(aMimeType, nullptr);
 }
 
-bool
-UnixOmxPlatformLayer::SupportsMimeTypeRenesas(const nsACString& aMimeType)
+/* static */ bool
+UnixOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
+                                            nsACString* aComponentName)
 {
-  const char* mime = aMimeType.Data();
-  MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
-          ("OmxPlatformLayer::%s: aMimeType: %s",
-           __func__, mime));
-
+  nsAutoCString role;
   if (aMimeType.EqualsLiteral("video/avc") ||
       aMimeType.EqualsLiteral("video/mp4") ||
       aMimeType.EqualsLiteral("video/mp4v-es")) {
-    return true;
+    role = "video_decoder.avc";
+  } else if (aMimeType.EqualsLiteral("audio/aac")) {
+    role = "audio_decoder.aac";
+  } else {
+    return false;
   }
 
-  return false;
+  OMX_U32 nComponents = 0;
+  OMX_ERRORTYPE err;
+  err = OMX_GetComponentsOfRole(const_cast<OMX_STRING>(role.Data()),
+                                &nComponents, nullptr);
+  if (err != OMX_ErrorNone || nComponents <= 0)
+    return false;
+  if (!aComponentName)
+    return true;
+
+  // TODO:
+  // Only the first component will be used in the current code.
+  // We should detect the most preferred component.
+  OMX_U8* componentNames[1];
+  componentNames[0] = reinterpret_cast<OMX_U8*>(malloc(OMX_MAX_STRINGNAME_SIZE));
+  nComponents = 1;
+  err = OMX_GetComponentsOfRole(const_cast<OMX_STRING>(role.Data()),
+                                &nComponents, componentNames);
+  if (err == OMX_ErrorNone) {
+    MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
+            ("UnixOmxPlatformLayer::%s: A component is found for %s: %s",
+             __func__, aMimeType.Data(), componentNames[0]));
+    *aComponentName = reinterpret_cast<char*>(componentNames[0]);
+  }
+  free(componentNames[0]);
+
+  return err == OMX_ErrorNone;
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::CreateComponentRenesas(void)
+UnixOmxPlatformLayer::CreateComponent(const nsACString* aComponentName)
 {
-  OMX_ERRORTYPE err = OMX_ErrorUndefined;
-  const char* mime = mInfo->mMimeType.Data();
-
-  if (mInfo->GetAsVideoInfo()) {
-    // This is video decoding.
-    if (mInfo->mMimeType.EqualsLiteral("video/avc") ||
-        mInfo->mMimeType.EqualsLiteral("video/mp4") ||
-        mInfo->mMimeType.EqualsLiteral("video/mp4v-es")) {
-      err = OMX_GetHandle(&mComponent,
-                          "OMX.RENESAS.VIDEO.DECODER.H264",
-                          this,
-                          &callbacks);
-    }
+  nsAutoCString componentName;
+  if (aComponentName) {
+    componentName = *aComponentName;
+  } else {
+    bool found = FindStandardComponent(mInfo->mMimeType, &componentName);
+    if (!found)
+      return OMX_ErrorComponentNotFound;
   }
 
+  OMX_ERRORTYPE err;
+  err = OMX_GetHandle(&mComponent,
+                      const_cast<OMX_STRING>(componentName.Data()),
+                      this,
+                      &callbacks);
+
+  const char* mime = mInfo->mMimeType.Data();
   if (err == OMX_ErrorNone) {
     LOG("Succeeded to create the component for %s", mime);
   } else {

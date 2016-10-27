@@ -83,9 +83,10 @@ public:
                                       OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer);
 
 protected:
-  static bool SupportsMimeTypeRenesas(const nsACString& aMimeType);
+  static bool FindStandardComponent(const nsACString& aMimeType,
+                                    nsACString* aComponentName);
 
-  OMX_ERRORTYPE CreateComponentRenesas(void);
+  OMX_ERRORTYPE CreateComponent(const nsACString* aComponentName = nullptr);
   nsresult FindPortDefinition(OMX_DIRTYPE aType,
                               OMX_PARAM_PORTDEFINITIONTYPE& portDef);
 

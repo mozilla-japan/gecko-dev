@@ -257,8 +257,7 @@ UnixOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
                                       OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
 {
   UnixOmxPlatformLayer* self = static_cast<UnixOmxPlatformLayer*>(pAppData);
-  self->EmptyBufferDone(pBuffer);
-  return OMX_ErrorNone;
+  return self->EmptyBufferDone(pBuffer);
 }
 
 /* static */ OMX_ERRORTYPE

@@ -71,7 +71,7 @@ public:
 
   static OMX_ERRORTYPE EventHandler(OMX_HANDLETYPE hComponent,
                                     OMX_PTR pAppData,
-                                    OMX_EVENTTYPE eEvent,
+                                    OMX_EVENTTYPE eEventType,
                                     OMX_U32 nData1,
                                     OMX_U32 nData2,
                                     OMX_PTR pEventData);
@@ -88,6 +88,13 @@ protected:
   OMX_ERRORTYPE CreateComponentRenesas(void);
   nsresult FindPortDefinition(OMX_DIRTYPE aType,
                               OMX_PARAM_PORTDEFINITIONTYPE& portDef);
+
+  OMX_ERRORTYPE EventHandler(OMX_EVENTTYPE eEventType,
+                             OMX_U32 nData1,
+                             OMX_U32 nData2,
+                             OMX_PTR pEventData);
+  OMX_ERRORTYPE EmptyBufferDone(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer);
+  OMX_ERRORTYPE FillBufferDone(OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer);
 
 protected:
   static OMX_CALLBACKTYPE callbacks;

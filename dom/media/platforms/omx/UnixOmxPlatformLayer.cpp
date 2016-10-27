@@ -68,41 +68,6 @@ UnixOmxPlatformLayer::Init(void)
   return true;
 }
 
-/* static */ OMX_ERRORTYPE
-UnixOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
-                                   OMX_PTR pAppData,
-                                   OMX_EVENTTYPE eEvent,
-                                   OMX_U32 nData1,
-                                   OMX_U32 nData2,
-                                   OMX_PTR pEventData)
-{
-  UnixOmxPlatformLayer* platformLayer = static_cast<UnixOmxPlatformLayer*>(pAppData);
-  platformLayer->mPromiseLayer->Event(eEvent, nData1, nData2);
-  return OMX_ErrorNone;
-}
-
-/* static */ OMX_ERRORTYPE
-UnixOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
-                                      OMX_IN OMX_PTR pAppData,
-                                      OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
-{
-  UnixOmxPlatformLayer* platformLayer = static_cast<UnixOmxPlatformLayer*>(pAppData);
-  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
-  platformLayer->mPromiseLayer->EmptyFillBufferDone(buffer->GetPortDirection(), buffer);
-  return OMX_ErrorNone;
-}
-
-/* static */ OMX_ERRORTYPE
-UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
-                                     OMX_OUT OMX_PTR pAppData,
-                                     OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
-{
-  UnixOmxPlatformLayer* platformLayer = static_cast<UnixOmxPlatformLayer*>(pAppData);
-  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
-  platformLayer->mPromiseLayer->EmptyFillBufferDone(buffer->GetPortDirection(), buffer);
-  return OMX_ErrorNone;
-}
-
 /* static */ OMX_CALLBACKTYPE UnixOmxPlatformLayer::callbacks =
   { EventHandler, EmptyBufferDone, FillBufferDone };
 
@@ -271,6 +236,68 @@ UnixOmxPlatformLayer::Shutdown()
 {
   LOG("");
   return NS_OK;
+}
+
+/* static */ OMX_ERRORTYPE
+UnixOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
+                                   OMX_PTR pAppData,
+                                   OMX_EVENTTYPE eEventType,
+                                   OMX_U32 nData1,
+                                   OMX_U32 nData2,
+                                   OMX_PTR pEventData)
+{
+  UnixOmxPlatformLayer* self = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  return self->EventHandler(eEventType, nData1, nData2, pEventData);
+}
+
+/* static */ OMX_ERRORTYPE
+UnixOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
+                                      OMX_IN OMX_PTR pAppData,
+                                      OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
+{
+  UnixOmxPlatformLayer* self = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  self->EmptyBufferDone(pBuffer);
+  return OMX_ErrorNone;
+}
+
+/* static */ OMX_ERRORTYPE
+UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
+                                     OMX_OUT OMX_PTR pAppData,
+                                     OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
+{
+  UnixOmxPlatformLayer* self = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  return self->FillBufferDone(pBuffer);
+}
+
+OMX_ERRORTYPE
+UnixOmxPlatformLayer::EventHandler(OMX_EVENTTYPE eEventType,
+                                   OMX_U32 nData1,
+                                   OMX_U32 nData2,
+                                   OMX_PTR pEventData)
+{
+  bool handled = mPromiseLayer->Event(eEventType, nData1, nData2);
+  LOG("eEventType: 0x%08x, handled: %d", eEventType, handled);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE
+UnixOmxPlatformLayer::EmptyBufferDone(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
+{
+  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
+  OMX_DIRTYPE portDirection = buffer->GetPortDirection();
+  LOG("PortDirection: %d", portDirection);
+  mPromiseLayer->EmptyFillBufferDone(portDirection, buffer);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE
+UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
+{
+  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
+  OMX_DIRTYPE portDirection = buffer->GetPortDirection();
+  LOG("PortDirection: %d", portDirection);
+  mPromiseLayer->EmptyFillBufferDone(portDirection, buffer);
+  return OMX_ErrorNone;
 }
 
 bool

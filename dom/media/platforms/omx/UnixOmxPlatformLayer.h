@@ -98,7 +98,7 @@ protected:
   OMX_ERRORTYPE FillBufferDone(OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer);
 
 protected:
-  static OMX_CALLBACKTYPE callbacks;
+  static OMX_CALLBACKTYPE sCallbacks;
 
   OMX_HANDLETYPE mComponent;
   RefPtr<OmxDataDecoder> mDataDecoder;

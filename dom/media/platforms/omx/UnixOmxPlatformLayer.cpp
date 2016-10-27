@@ -68,7 +68,7 @@ UnixOmxPlatformLayer::Init(void)
   return true;
 }
 
-/* static */ OMX_CALLBACKTYPE UnixOmxPlatformLayer::callbacks =
+/* static */ OMX_CALLBACKTYPE UnixOmxPlatformLayer::sCallbacks =
   { EventHandler, EmptyBufferDone, FillBufferDone };
 
 UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
@@ -375,7 +375,7 @@ UnixOmxPlatformLayer::CreateComponent(const nsACString* aComponentName)
   err = OMX_GetHandle(&mComponent,
                       const_cast<OMX_STRING>(componentName.Data()),
                       this,
-                      &callbacks);
+                      &sCallbacks);
 
   const char* mime = mInfo->mMimeType.Data();
   if (err == OMX_ErrorNone) {

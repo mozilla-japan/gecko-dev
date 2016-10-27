@@ -30,7 +30,7 @@ protected:
 
 class UnixOmxPlatformLayer : public OmxPlatformLayer {
 public:
-  static void Init(void);
+  static bool Init(void);
 
   static bool SupportsMimeType(const nsACString& aMimeType);
 

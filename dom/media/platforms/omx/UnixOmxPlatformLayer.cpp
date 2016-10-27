@@ -51,16 +51,21 @@ UnixOmxBufferData::~UnixOmxBufferData()
   }
 }
 
-/* static */ void
+/* static */ bool
 UnixOmxPlatformLayer::Init(void)
 {
-  OmxCoreLibLinker::Link();
+  if (!OmxCoreLibLinker::Link())
+    return false;
+
   OMX_ERRORTYPE err = OMX_Init();
   if (err != OMX_ErrorNone) {
     MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
             ("UnixOmxPlatformLayer::%s: Failed to initialize OMXCore: 0x%08x",
              __func__, err));
+    return false;
   }
+
+  return true;
 }
 
 /* static */ OMX_ERRORTYPE

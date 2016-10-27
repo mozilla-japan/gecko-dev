@@ -15,12 +15,24 @@
 
 namespace mozilla {
 
-/* static */ void
+/* static */ bool
 OmxDecoderModule::Init()
 {
 #ifdef MOZ_WIDGET_GTK
-  UnixOmxPlatformLayer::Init();
+  return UnixOmxPlatformLayer::Init();
 #endif
+  return false;
+}
+
+OmxDecoderModule*
+OmxDecoderModule::Create()
+{
+#ifdef MOZ_WIDGET_GTK
+  if (!Init())
+    return nullptr;
+  return new OmxDecoderModule();
+#endif
+  return nullptr;
 }
 
 already_AddRefed<MediaDataDecoder>

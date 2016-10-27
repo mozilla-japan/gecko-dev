@@ -96,6 +96,10 @@ PDMFactory::Init()
 
   Preferences::AddBoolVarCache(&sGMPDecoderEnabled,
                                "media.gmp.decoder.enabled", false);
+#ifdef MOZ_WIDGET_GTK
+  Preferences::AddBoolVarCache(&sOmxDecoderEnabled,
+                               "media.pdm-omx.enabled", false);
+#endif
 #ifdef MOZ_FFMPEG
   Preferences::AddBoolVarCache(&sFFmpegDecoderEnabled,
                                "media.ffmpeg.enabled", false);
@@ -103,10 +107,6 @@ PDMFactory::Init()
 #ifdef XP_WIN
   Preferences::AddBoolVarCache(&sWMFDecoderEnabled,
                                "media.wmf.enabled", false);
-#endif
-#ifdef MOZ_WIDGET_GTK
-  Preferences::AddBoolVarCache(&sOmxDecoderEnabled,
-                               "media.pdm-omx.enabled", false);
 #endif
 
   Preferences::AddBoolVarCache(&sEnableFuzzingWrapper,
@@ -276,7 +276,7 @@ PDMFactory::CreatePDMs()
 #endif
 #ifdef MOZ_WIDGET_GTK
   if (sOmxDecoderEnabled) {
-    m = new OmxDecoderModule();
+    m = OmxDecoderModule::Create();
     StartupPDM(m);
   }
 #endif

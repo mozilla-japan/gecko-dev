@@ -306,20 +306,29 @@ UnixOmxPlatformLayer::SupportsMimeType(const nsACString& aMimeType)
   return FindStandardComponent(aMimeType, nullptr);
 }
 
+static bool
+GetStandardComponentRole(const nsACString& aMimeType,
+                         nsACString& aRole)
+{
+  if (aMimeType.EqualsLiteral("video/avc") ||
+      aMimeType.EqualsLiteral("video/mp4") ||
+      aMimeType.EqualsLiteral("video/mp4v-es")) {
+    aRole.Assign("video_decoder.avc");
+    return true;
+  } else if (aMimeType.EqualsLiteral("audio/aac")) {
+    aRole.Assign("audio_decoder.aac");
+    return true;
+  }
+  return false;
+}
+
 /* static */ bool
 UnixOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
                                             nsACString* aComponentName)
 {
   nsAutoCString role;
-  if (aMimeType.EqualsLiteral("video/avc") ||
-      aMimeType.EqualsLiteral("video/mp4") ||
-      aMimeType.EqualsLiteral("video/mp4v-es")) {
-    role = "video_decoder.avc";
-  } else if (aMimeType.EqualsLiteral("audio/aac")) {
-    role = "audio_decoder.aac";
-  } else {
+  if (!GetStandardComponentRole(aMimeType, role))
     return false;
-  }
 
   OMX_U32 nComponents = 0;
   OMX_ERRORTYPE err;
@@ -342,7 +351,7 @@ UnixOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
     MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
             ("UnixOmxPlatformLayer::%s: A component is found for %s: %s",
              __func__, aMimeType.Data(), componentNames[0]));
-    *aComponentName = reinterpret_cast<char*>(componentNames[0]);
+    aComponentName->Assign(reinterpret_cast<char*>(componentNames[0]));
   }
   free(componentNames[0]);
 

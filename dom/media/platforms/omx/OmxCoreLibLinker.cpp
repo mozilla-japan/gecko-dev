@@ -26,7 +26,7 @@ OmxCoreLibLinker::LinkStatus OmxCoreLibLinker::sLinkStatus =
 
 const char* OmxCoreLibLinker::sLibs[] = {
   "/usr/local/lib/libomxr_core.so", // Renesas (R-Car, RZ/G): Our first target
-  //"/opt/vc/lib/libopenmaxil.so", // Raspberry Pi: Our next target
+  "/opt/vc/lib/libopenmaxil.so", // Raspberry Pi: Our next target
   "libomxil-bellagio.so.0", // Bellagio (An OSS implementation of OpenMAX IL)
 };
 

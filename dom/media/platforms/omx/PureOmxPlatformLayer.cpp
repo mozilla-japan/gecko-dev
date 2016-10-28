@@ -338,7 +338,7 @@ PureOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
     return true;
 
   // TODO:
-  // Only the first component will be used in the current code.
+  // Only the first component will be used.
   // We should detect the most preferred component.
   OMX_U8* componentNames[1];
   componentNames[0] = reinterpret_cast<OMX_U8*>(malloc(OMX_MAX_STRINGNAME_SIZE));
@@ -347,7 +347,7 @@ PureOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
                                 &nComponents, componentNames);
   if (err == OMX_ErrorNone) {
     MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
-            ("PureOmxPlatformLayer::%s: A component is found for %s: %s",
+            ("PureOmxPlatformLayer::%s: A component has been found for %s: %s",
              __func__, aMimeType.Data(), componentNames[0]));
     aComponentName->Assign(reinterpret_cast<char*>(componentNames[0]));
   }

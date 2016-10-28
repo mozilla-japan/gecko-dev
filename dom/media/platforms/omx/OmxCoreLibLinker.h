@@ -21,8 +21,9 @@ public:
 private:
   static PRLibrary* sLinkedLib;
   static const char* sLibName;
-  static const char* sLibs[];
+  static const char* sLibNames[];
 
+  static bool TryLinkingLibrary(const char *libName);
   static bool Bind(const char* aLibName);
 
   static enum LinkStatus {

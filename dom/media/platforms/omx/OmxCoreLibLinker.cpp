@@ -24,7 +24,7 @@ namespace mozilla
 OmxCoreLibLinker::LinkStatus OmxCoreLibLinker::sLinkStatus =
   LinkStatus_INIT;
 
-const char* OmxCoreLibLinker::sLibs[] = {
+const char* OmxCoreLibLinker::sLibNames[] = {
   "/usr/local/lib/libomxr_core.so", // Renesas (R-Car, RZ/G): Our first target
   "/opt/vc/lib/libopenmaxil.so", // Raspberry Pi: Our next target
   "libomxil-bellagio.so.0", // Bellagio: An OSS implementation of OpenMAX IL
@@ -37,6 +37,27 @@ const char* OmxCoreLibLinker::sLibName = nullptr;
 #include "OmxFunctionList.h"
 #undef OMX_FUNC
 
+bool
+OmxCoreLibLinker::TryLinkingLibrary(const char *libName)
+{
+  PRLibSpec lspec;
+  lspec.type = PR_LibSpec_Pathname;
+  lspec.value.pathname = libName;
+  sLinkedLib = PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
+  if (sLinkedLib) {
+    if (Bind(libName)) {
+      sLibName = libName;
+      sLinkStatus = LinkStatus_SUCCEEDED;
+      LOG("Succeeded to load %s", libName);
+      return true;
+    } else {
+      LOG("Failed to link %s", libName);
+    }
+    Unlink();
+  }
+  return false;
+}
+
 /* static */ bool
 OmxCoreLibLinker::Link()
 {
@@ -48,29 +69,15 @@ OmxCoreLibLinker::Link()
 
   MOZ_ASSERT(NS_IsMainThread());
 
-  for (size_t i = 0; i < ArrayLength(sLibs); i++) {
-    const char* lib = sLibs[i];
-    PRLibSpec lspec;
-    lspec.type = PR_LibSpec_Pathname;
-    lspec.value.pathname = lib;
-    sLinkedLib = PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
-    if (sLinkedLib) {
-      if (Bind(lib)) {
-        sLibName = lib;
-        sLinkStatus = LinkStatus_SUCCEEDED;
-        LOG("Succeeded to load %s", lib);
-        return true;
-      } else {
-        LOG("Failed to link %s", lib);
-      }
-      Unlink();
-    } else {
-      LOG("Failed to load %s", lib);
-    }
-  }
+  auto libPath = Preferences::GetCString("media.pdm-omx.core-lib-path");
+  if (!libPath.IsEmpty() && TryLinkingLibrary(libPath.Data()))
+    return true;
 
-  Unlink();
-  sLinkStatus = LinkStatus_FAILED;
+  // try known paths
+  for (size_t i = 0; i < ArrayLength(sLibNames); i++) {
+    if (TryLinkingLibrary(sLibNames[i]))
+      return true;
+  }
   return false;
 }
 

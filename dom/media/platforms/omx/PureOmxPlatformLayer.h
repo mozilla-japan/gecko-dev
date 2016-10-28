@@ -18,13 +18,13 @@ protected:
   virtual ~PureOmxBufferData();
 
 public:
-  PureOmxBufferData(const PureOmxPlatformLayer& aPurePlatformLayer,
+  PureOmxBufferData(const PureOmxPlatformLayer& aPlatformLayer,
                     const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef);
 
   OMX_DIRTYPE GetPortDirection() const { return mPortDef.eDir; };
 
 protected:
-  const PureOmxPlatformLayer& mPurePlatformLayer;
+  const PureOmxPlatformLayer& mPlatformLayer;
   const OMX_PARAM_PORTDEFINITIONTYPE mPortDef;
 };
 

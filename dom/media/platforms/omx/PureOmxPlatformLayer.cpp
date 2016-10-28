@@ -23,13 +23,13 @@ namespace mozilla {
 #include "OmxFunctionList.h"
 #undef OMX_FUNC
 
-PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPurePlatformLayer,
+PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPlatformLayer,
                                      const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef)
   : BufferData(nullptr)
-  , mPurePlatformLayer(aPurePlatformLayer)
+  , mPlatformLayer(aPlatformLayer)
   , mPortDef(aPortDef)
 {
-  OMX_ERRORTYPE err = OMX_AllocateBuffer(mPurePlatformLayer.GetComponent(),
+  OMX_ERRORTYPE err = OMX_AllocateBuffer(mPlatformLayer.GetComponent(),
                                          &mBuffer,
                                          mPortDef.nPortIndex,
                                          this,
@@ -42,7 +42,7 @@ PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPurePlatformLa
 PureOmxBufferData::~PureOmxBufferData()
 {
   if (mBuffer) {
-    OMX_ERRORTYPE err = OMX_FreeBuffer(mPurePlatformLayer.GetComponent(),
+    OMX_ERRORTYPE err = OMX_FreeBuffer(mPlatformLayer.GetComponent(),
                                        mPortDef.nPortIndex,
                                        mBuffer);
     if (err != OMX_ErrorNone) {

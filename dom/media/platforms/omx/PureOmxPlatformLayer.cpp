@@ -210,7 +210,6 @@ PureOmxPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
   if (!mComponent)
     return OMX_ErrorUndefined;
 
-  // TODO: Should check the struct size?
   return OMX_GetParameter(mComponent,
                           aParamIndex,
                           aComponentParameterStructure);
@@ -226,7 +225,6 @@ PureOmxPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
   if (!mComponent)
     return OMX_ErrorUndefined;
 
-  // TODO: Should check the struct size?
   return OMX_SetParameter(mComponent,
                           aParamIndex,
                           aComponentParameterStructure);

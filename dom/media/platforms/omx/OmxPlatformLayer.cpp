@@ -14,8 +14,8 @@
 #endif
 
 #ifdef MOZ_WIDGET_GTK
-#define OMX_PLATFORM_UNIX
-#include "UnixOmxPlatformLayer.h"
+#define OMX_PLATFORM_PURE
+#include "PureOmxPlatformLayer.h"
 #endif
 
 #include "VPXDecoder.h"
@@ -312,12 +312,12 @@ OmxPlatformLayer::Create(OmxDataDecoder* aDataDecoder,
   return new GonkOmxPlatformLayer(aDataDecoder, aPromiseLayer, aTaskQueue, aImageContainer);
 }
 
-#elif defined(OMX_PLATFORM_UNIX)
+#elif defined(OMX_PLATFORM_PURE)
 
 bool
 OmxPlatformLayer::SupportsMimeType(const nsACString& aMimeType)
 {
-  return UnixOmxPlatformLayer::SupportsMimeType(aMimeType);
+  return PureOmxPlatformLayer::SupportsMimeType(aMimeType);
 }
 
 OmxPlatformLayer*
@@ -326,7 +326,7 @@ OmxPlatformLayer::Create(OmxDataDecoder* aDataDecoder,
                          TaskQueue* aTaskQueue,
                          layers::ImageContainer* aImageContainer)
 {
-  return new UnixOmxPlatformLayer(aDataDecoder, aPromiseLayer, aTaskQueue, aImageContainer);
+  return new PureOmxPlatformLayer(aDataDecoder, aPromiseLayer, aTaskQueue, aImageContainer);
 }
 
 #else // For platforms without OMX IL support.

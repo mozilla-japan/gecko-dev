@@ -10,7 +10,7 @@
 #include "OmxPlatformLayer.h"
 
 #ifdef MOZ_WIDGET_GTK
-#include "UnixOmxPlatformLayer.h"
+#include "PureOmxPlatformLayer.h"
 #endif
 
 namespace mozilla {
@@ -19,7 +19,7 @@ namespace mozilla {
 OmxDecoderModule::Init()
 {
 #ifdef MOZ_WIDGET_GTK
-  return UnixOmxPlatformLayer::Init();
+  return PureOmxPlatformLayer::Init();
 #endif
   return false;
 }

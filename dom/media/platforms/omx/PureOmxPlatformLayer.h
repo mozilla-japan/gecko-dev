@@ -4,42 +4,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if !defined(UnixOmxPlatformLayer_h_)
-#define UnixOmxPlatformLayer_h_
+#if !defined(PureOmxPlatformLayer_h_)
+#define PureOmxPlatformLayer_h_
 
 #include "OmxPlatformLayer.h"
 
 namespace mozilla {
 
-class UnixOmxPlatformLayer;
+class PureOmxPlatformLayer;
 
-class UnixOmxBufferData : public OmxPromiseLayer::BufferData {
+class PureOmxBufferData : public OmxPromiseLayer::BufferData {
 protected:
-  virtual ~UnixOmxBufferData();
+  virtual ~PureOmxBufferData();
 
 public:
-  UnixOmxBufferData(const UnixOmxPlatformLayer& aUnixPlatformLayer,
+  PureOmxBufferData(const PureOmxPlatformLayer& aPurePlatformLayer,
                     const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef);
 
   OMX_DIRTYPE GetPortDirection() const { return mPortDef.eDir; };
 
 protected:
-  const UnixOmxPlatformLayer& mUnixPlatformLayer;
+  const PureOmxPlatformLayer& mPurePlatformLayer;
   const OMX_PARAM_PORTDEFINITIONTYPE mPortDef;
 };
 
-class UnixOmxPlatformLayer : public OmxPlatformLayer {
+class PureOmxPlatformLayer : public OmxPlatformLayer {
 public:
   static bool Init(void);
 
   static bool SupportsMimeType(const nsACString& aMimeType);
 
-  UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
+  PureOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                        OmxPromiseLayer* aPromiseLayer,
                        TaskQueue* aTaskQueue,
                        layers::ImageContainer* aImageContainer);
 
-  virtual ~UnixOmxPlatformLayer();
+  virtual ~PureOmxPlatformLayer();
 
   virtual OMX_ERRORTYPE InitOmxToStateLoaded(const TrackInfo* aInfo) override;
 
@@ -109,4 +109,4 @@ protected:
 
 }
 
-#endif // UnixOmxPlatformLayer_h_
+#endif // PureOmxPlatformLayer_h_

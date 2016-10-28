@@ -6,7 +6,7 @@
 
 #include "OmxDataDecoder.h"
 #include "OmxPromiseLayer.h"
-#include "UnixOmxPlatformLayer.h"
+#include "PureOmxPlatformLayer.h"
 #include "OmxCoreLibLinker.h"
 
 #ifdef LOG
@@ -15,7 +15,7 @@
 
 extern mozilla::LogModule* GetPDMLog();
 
-#define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("UnixOmxPlatformLayer(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
+#define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("PureOmxPlatformLayer(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
 namespace mozilla {
 
@@ -23,13 +23,13 @@ namespace mozilla {
 #include "OmxFunctionList.h"
 #undef OMX_FUNC
 
-UnixOmxBufferData::UnixOmxBufferData(const UnixOmxPlatformLayer& aUnixPlatformLayer,
+PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPurePlatformLayer,
                                      const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef)
   : BufferData(nullptr)
-  , mUnixPlatformLayer(aUnixPlatformLayer)
+  , mPurePlatformLayer(aPurePlatformLayer)
   , mPortDef(aPortDef)
 {
-  OMX_ERRORTYPE err = OMX_AllocateBuffer(mUnixPlatformLayer.GetComponent(),
+  OMX_ERRORTYPE err = OMX_AllocateBuffer(mPurePlatformLayer.GetComponent(),
                                          &mBuffer,
                                          mPortDef.nPortIndex,
                                          this,
@@ -39,10 +39,10 @@ UnixOmxBufferData::UnixOmxBufferData(const UnixOmxPlatformLayer& aUnixPlatformLa
   }
 }
 
-UnixOmxBufferData::~UnixOmxBufferData()
+PureOmxBufferData::~PureOmxBufferData()
 {
   if (mBuffer) {
-    OMX_ERRORTYPE err = OMX_FreeBuffer(mUnixPlatformLayer.GetComponent(),
+    OMX_ERRORTYPE err = OMX_FreeBuffer(mPurePlatformLayer.GetComponent(),
                                        mPortDef.nPortIndex,
                                        mBuffer);
     if (err != OMX_ErrorNone) {
@@ -52,7 +52,7 @@ UnixOmxBufferData::~UnixOmxBufferData()
 }
 
 /* static */ bool
-UnixOmxPlatformLayer::Init(void)
+PureOmxPlatformLayer::Init(void)
 {
   if (!OmxCoreLibLinker::Link())
     return false;
@@ -60,7 +60,7 @@ UnixOmxPlatformLayer::Init(void)
   OMX_ERRORTYPE err = OMX_Init();
   if (err != OMX_ErrorNone) {
     MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
-            ("UnixOmxPlatformLayer::%s: Failed to initialize OMXCore: 0x%08x",
+            ("PureOmxPlatformLayer::%s: Failed to initialize OMXCore: 0x%08x",
              __func__, err));
     return false;
   }
@@ -68,10 +68,10 @@ UnixOmxPlatformLayer::Init(void)
   return true;
 }
 
-/* static */ OMX_CALLBACKTYPE UnixOmxPlatformLayer::sCallbacks =
+/* static */ OMX_CALLBACKTYPE PureOmxPlatformLayer::sCallbacks =
   { EventHandler, EmptyBufferDone, FillBufferDone };
 
-UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
+PureOmxPlatformLayer::PureOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
                                            OmxPromiseLayer* aPromiseLayer,
                                            TaskQueue* aTaskQueue,
                                            layers::ImageContainer* aImageContainer)
@@ -84,7 +84,7 @@ UnixOmxPlatformLayer::UnixOmxPlatformLayer(OmxDataDecoder* aDataDecoder,
   LOG("");
 }
 
-UnixOmxPlatformLayer::~UnixOmxPlatformLayer()
+PureOmxPlatformLayer::~PureOmxPlatformLayer()
 {
   LOG("");
   if (mComponent)
@@ -92,7 +92,7 @@ UnixOmxPlatformLayer::~UnixOmxPlatformLayer()
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::InitOmxToStateLoaded(const TrackInfo* aInfo)
+PureOmxPlatformLayer::InitOmxToStateLoaded(const TrackInfo* aInfo)
 {
   LOG("");
 
@@ -104,21 +104,21 @@ UnixOmxPlatformLayer::InitOmxToStateLoaded(const TrackInfo* aInfo)
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::EmptyThisBuffer(BufferData* aData)
+PureOmxPlatformLayer::EmptyThisBuffer(BufferData* aData)
 {
   LOG("");
   return OMX_EmptyThisBuffer(mComponent, aData->mBuffer);
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::FillThisBuffer(BufferData* aData)
+PureOmxPlatformLayer::FillThisBuffer(BufferData* aData)
 {
   LOG("");
   return OMX_FillThisBuffer(mComponent, aData->mBuffer);
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
+PureOmxPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
                                   OMX_U32 aParam1,
                                   OMX_PTR aCmdData)
 {
@@ -129,7 +129,7 @@ UnixOmxPlatformLayer::SendCommand(OMX_COMMANDTYPE aCmd,
 }
 
 nsresult
-UnixOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType,
+PureOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType,
                                          OMX_PARAM_PORTDEFINITIONTYPE& portDef)
 {
   nsTArray<uint32_t> portIndex;
@@ -152,7 +152,7 @@ UnixOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType,
 }
 
 nsresult
-UnixOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
+PureOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
                                         BUFFERLIST* aBufferList)
 {
   LOG("aType: %d", aType);
@@ -166,7 +166,7 @@ UnixOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
       portDef.nBufferCountActual, portDef.nBufferSize);
 
   for (OMX_U32 i = 0; i < portDef.nBufferCountActual; ++i) {
-    RefPtr<UnixOmxBufferData> buffer = new UnixOmxBufferData(*this, portDef);
+    RefPtr<PureOmxBufferData> buffer = new PureOmxBufferData(*this, portDef);
     aBufferList->AppendElement(buffer);
   }
 
@@ -174,15 +174,15 @@ UnixOmxPlatformLayer::AllocateOmxBuffer(OMX_DIRTYPE aType,
 }
 
 nsresult
-UnixOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
+PureOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
                                        BUFFERLIST* aBufferList)
 {
   LOG("aType: 0x%08x");
 
   uint32_t len = aBufferList->Length();
   for (uint32_t i = 0; i < len; i++) {
-    UnixOmxBufferData* buffer =
-      static_cast<UnixOmxBufferData*>(aBufferList->ElementAt(i).get());
+    PureOmxBufferData* buffer =
+      static_cast<PureOmxBufferData*>(aBufferList->ElementAt(i).get());
   }
   aBufferList->Clear();
 
@@ -190,7 +190,7 @@ UnixOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::GetState(OMX_STATETYPE* aType)
+PureOmxPlatformLayer::GetState(OMX_STATETYPE* aType)
 {
   LOG("");
 
@@ -201,7 +201,7 @@ UnixOmxPlatformLayer::GetState(OMX_STATETYPE* aType)
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
+PureOmxPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
                                    OMX_PTR aComponentParameterStructure,
                                    OMX_U32 aComponentParameterSize)
 {
@@ -217,7 +217,7 @@ UnixOmxPlatformLayer::GetParameter(OMX_INDEXTYPE aParamIndex,
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
+PureOmxPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
                                    OMX_PTR aComponentParameterStructure,
                                    OMX_U32 aComponentParameterSize)
 {
@@ -233,44 +233,44 @@ UnixOmxPlatformLayer::SetParameter(OMX_INDEXTYPE aParamIndex,
 }
 
 nsresult
-UnixOmxPlatformLayer::Shutdown()
+PureOmxPlatformLayer::Shutdown()
 {
   LOG("");
   return NS_OK;
 }
 
 /* static */ OMX_ERRORTYPE
-UnixOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
+PureOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
                                    OMX_PTR pAppData,
                                    OMX_EVENTTYPE eEventType,
                                    OMX_U32 nData1,
                                    OMX_U32 nData2,
                                    OMX_PTR pEventData)
 {
-  UnixOmxPlatformLayer* self = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
   return self->EventHandler(eEventType, nData1, nData2, pEventData);
 }
 
 /* static */ OMX_ERRORTYPE
-UnixOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
+PureOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
                                       OMX_IN OMX_PTR pAppData,
                                       OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
 {
-  UnixOmxPlatformLayer* self = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
   return self->EmptyBufferDone(pBuffer);
 }
 
 /* static */ OMX_ERRORTYPE
-UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
+PureOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
                                      OMX_OUT OMX_PTR pAppData,
                                      OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
 {
-  UnixOmxPlatformLayer* self = static_cast<UnixOmxPlatformLayer*>(pAppData);
+  PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
   return self->FillBufferDone(pBuffer);
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::EventHandler(OMX_EVENTTYPE eEventType,
+PureOmxPlatformLayer::EventHandler(OMX_EVENTTYPE eEventType,
                                    OMX_U32 nData1,
                                    OMX_U32 nData2,
                                    OMX_PTR pEventData)
@@ -281,9 +281,9 @@ UnixOmxPlatformLayer::EventHandler(OMX_EVENTTYPE eEventType,
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::EmptyBufferDone(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
+PureOmxPlatformLayer::EmptyBufferDone(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
 {
-  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
+  PureOmxBufferData* buffer = static_cast<PureOmxBufferData*>(pBuffer->pAppPrivate);
   OMX_DIRTYPE portDirection = buffer->GetPortDirection();
   LOG("PortDirection: %d", portDirection);
   mPromiseLayer->EmptyFillBufferDone(portDirection, buffer);
@@ -291,9 +291,9 @@ UnixOmxPlatformLayer::EmptyBufferDone(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
+PureOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
 {
-  UnixOmxBufferData* buffer = static_cast<UnixOmxBufferData*>(pBuffer->pAppPrivate);
+  PureOmxBufferData* buffer = static_cast<PureOmxBufferData*>(pBuffer->pAppPrivate);
   OMX_DIRTYPE portDirection = buffer->GetPortDirection();
   LOG("PortDirection: %d", portDirection);
   mPromiseLayer->EmptyFillBufferDone(portDirection, buffer);
@@ -301,7 +301,7 @@ UnixOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
 }
 
 bool
-UnixOmxPlatformLayer::SupportsMimeType(const nsACString& aMimeType)
+PureOmxPlatformLayer::SupportsMimeType(const nsACString& aMimeType)
 {
   return FindStandardComponent(aMimeType, nullptr);
 }
@@ -323,7 +323,7 @@ GetStandardComponentRole(const nsACString& aMimeType,
 }
 
 /* static */ bool
-UnixOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
+PureOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
                                             nsACString* aComponentName)
 {
   nsAutoCString role;
@@ -349,7 +349,7 @@ UnixOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
                                 &nComponents, componentNames);
   if (err == OMX_ErrorNone) {
     MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug,
-            ("UnixOmxPlatformLayer::%s: A component is found for %s: %s",
+            ("PureOmxPlatformLayer::%s: A component is found for %s: %s",
              __func__, aMimeType.Data(), componentNames[0]));
     aComponentName->Assign(reinterpret_cast<char*>(componentNames[0]));
   }
@@ -359,7 +359,7 @@ UnixOmxPlatformLayer::FindStandardComponent(const nsACString& aMimeType,
 }
 
 OMX_ERRORTYPE
-UnixOmxPlatformLayer::CreateComponent(const nsACString* aComponentName)
+PureOmxPlatformLayer::CreateComponent(const nsACString* aComponentName)
 {
   nsAutoCString componentName;
   if (aComponentName) {

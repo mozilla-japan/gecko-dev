@@ -48,6 +48,7 @@ extern already_AddRefed<PlatformDecoderModule> CreateAgnosticDecoderModule();
 extern already_AddRefed<PlatformDecoderModule> CreateBlankDecoderModule();
 
 bool PDMFactory::sUseBlankDecoder = false;
+bool PDMFactory::sUseFallbackBlankDecoder = false;
 #ifdef MOZ_GONK_MEDIACODEC
 bool PDMFactory::sGonkDecoderEnabled = false;
 #endif
@@ -83,6 +84,8 @@ PDMFactory::Init()
 
   Preferences::AddBoolVarCache(&sUseBlankDecoder,
                                "media.use-blank-decoder");
+  Preferences::AddBoolVarCache(&sUseFallbackBlankDecoder,
+                               "media.use-fallback-blank-decoder");
 #ifdef MOZ_GONK_MEDIACODEC
   Preferences::AddBoolVarCache(&sGonkDecoderEnabled,
                                "media.gonk.enabled", false);
@@ -310,6 +313,11 @@ PDMFactory::CreatePDMs()
     m = new GMPDecoderModule();
     StartupPDM(m);
   }  
+
+  if (sUseFallbackBlankDecoder) {
+    m = CreateBlankDecoderModule();
+    StartupPDM(m);
+  }
 }
 
 bool

@@ -65,6 +65,7 @@ private:
 
   // PDM pref caches...
   static bool sUseBlankDecoder;
+  static bool sUseFallbackBlankDecoder;
 #ifdef MOZ_GONK_MEDIACODEC
   static bool sGonkDecoderEnabled;
 #endif

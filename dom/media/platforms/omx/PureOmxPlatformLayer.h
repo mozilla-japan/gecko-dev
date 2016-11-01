@@ -24,6 +24,8 @@ public:
   OMX_DIRTYPE GetPortDirection() const { return mPortDef.eDir; };
 
 protected:
+  bool ShouldUseEGLImage();
+
   const PureOmxPlatformLayer& mPlatformLayer;
   const OMX_PARAM_PORTDEFINITIONTYPE mPortDef;
 };

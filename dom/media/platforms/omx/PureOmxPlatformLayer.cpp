@@ -29,11 +29,18 @@ PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPlatformLayer,
   , mPlatformLayer(aPlatformLayer)
   , mPortDef(aPortDef)
 {
-  OMX_ERRORTYPE err = OMX_AllocateBuffer(mPlatformLayer.GetComponent(),
-                                         &mBuffer,
-                                         mPortDef.nPortIndex,
-                                         this,
-                                         mPortDef.nBufferSize);
+  if (ShouldUseEGLImage()) {
+    LOG("OMX_UseEGLImage() seems available but using it isn't implemented yet.");
+  } else {
+    // Renesas RZ/G doesn't support it
+  }
+
+  OMX_ERRORTYPE err;
+  err = OMX_AllocateBuffer(mPlatformLayer.GetComponent(),
+                           &mBuffer,
+                           mPortDef.nPortIndex,
+                           this,
+                           mPortDef.nBufferSize);
   if (err != OMX_ErrorNone) {
     LOG("Failed to allocate the buffer!: 0x%08x", err);
   }
@@ -49,6 +56,17 @@ PureOmxBufferData::~PureOmxBufferData()
       LOG("Failed to free the buffer!: 0x%08x", err);
     }
   }
+}
+
+bool PureOmxBufferData::ShouldUseEGLImage()
+{
+  OMX_ERRORTYPE err;
+  err = OMX_UseEGLImage(mPlatformLayer.GetComponent(),
+                        nullptr,
+                        mPortDef.nPortIndex,
+                        nullptr,
+                        nullptr);
+  return (err != OMX_ErrorNotImplemented);
 }
 
 /* static */ bool

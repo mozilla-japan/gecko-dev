@@ -16,6 +16,7 @@
 extern mozilla::LogModule* GetPDMLog();
 
 #define LOG(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("PureOmxPlatformLayer(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
+#define LOG_BUF(arg, ...) MOZ_LOG(GetPDMLog(), mozilla::LogLevel::Debug, ("PureOmxBufferData(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
 namespace mozilla {
 
@@ -29,8 +30,10 @@ PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPlatformLayer,
   , mPlatformLayer(aPlatformLayer)
   , mPortDef(aPortDef)
 {
+  LOG_BUF("");
+
   if (ShouldUseEGLImage()) {
-    LOG("OMX_UseEGLImage() seems available but using it isn't implemented yet.");
+    LOG_BUF("OMX_UseEGLImage() seems available but using it isn't implemented yet.");
   } else {
     // Renesas RZ/G doesn't support it
   }
@@ -42,18 +45,20 @@ PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPlatformLayer,
                            this,
                            mPortDef.nBufferSize);
   if (err != OMX_ErrorNone) {
-    LOG("Failed to allocate the buffer!: 0x%08x", err);
+    LOG_BUF("Failed to allocate the buffer!: 0x%08x", err);
   }
 }
 
 PureOmxBufferData::~PureOmxBufferData()
 {
+  LOG_BUF("");
+
   if (mBuffer) {
     OMX_ERRORTYPE err = OMX_FreeBuffer(mPlatformLayer.GetComponent(),
                                        mPortDef.nPortIndex,
                                        mBuffer);
     if (err != OMX_ErrorNone) {
-      LOG("Failed to free the buffer!: 0x%08x", err);
+      LOG_BUF("Failed to free the buffer!: 0x%08x", err);
     }
   }
 }

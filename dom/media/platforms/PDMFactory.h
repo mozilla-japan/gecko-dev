@@ -79,6 +79,9 @@ private:
 #ifdef XP_WIN
   static bool sWMFDecoderEnabled;
 #endif
+#ifdef MOZ_WIDGET_GTK
+  static bool sOmxDecoderEnabled;
+#endif
   static bool sEnableFuzzingWrapper;
   static uint32_t sVideoOutputMinimumInterval_ms;
   static bool sDontDelayInputExhausted;

@@ -195,7 +195,7 @@ nsresult
 PureOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
                                        BUFFERLIST* aBufferList)
 {
-  LOG("aType: 0x%08x");
+  LOG("aType: 0x%08x", aType);
 
   aBufferList->Clear();
 

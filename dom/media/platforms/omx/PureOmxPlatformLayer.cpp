@@ -197,11 +197,6 @@ PureOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
 {
   LOG("aType: 0x%08x");
 
-  uint32_t len = aBufferList->Length();
-  for (uint32_t i = 0; i < len; i++) {
-    PureOmxBufferData* buffer =
-      static_cast<PureOmxBufferData*>(aBufferList->ElementAt(i).get());
-  }
   aBufferList->Clear();
 
   return NS_OK;

@@ -35,4 +35,4 @@ private:
 
 }
 
-#endif // __FFmpegRuntimeLinker_h__
+#endif // __OmxCoreLibLinker_h__

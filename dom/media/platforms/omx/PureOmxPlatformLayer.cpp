@@ -282,7 +282,11 @@ PureOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
                                    OMX_PTR pEventData)
 {
   PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
-  return self->EventHandler(eEventType, nData1, nData2, pEventData);
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self, eEventType, nData1, nData2, pEventData] () {
+      self->EventHandler(eEventType, nData1, nData2, pEventData);
+    });
+  self->mTaskQueue->Dispatch(r.forget());
+  return OMX_ErrorNone;
 }
 
 /* static */ OMX_ERRORTYPE
@@ -291,7 +295,11 @@ PureOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
                                       OMX_IN OMX_BUFFERHEADERTYPE* pBuffer)
 {
   PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
-  return self->EmptyBufferDone(pBuffer);
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self, pBuffer] () {
+      self->EmptyBufferDone(pBuffer);
+    });
+  self->mTaskQueue->Dispatch(r.forget());
+  return OMX_ErrorNone;
 }
 
 /* static */ OMX_ERRORTYPE
@@ -300,7 +308,11 @@ PureOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
                                      OMX_OUT OMX_BUFFERHEADERTYPE* pBuffer)
 {
   PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
-  return self->FillBufferDone(pBuffer);
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self, pBuffer] () {
+      self->FillBufferDone(pBuffer);
+    });
+  self->mTaskQueue->Dispatch(r.forget());
+  return OMX_ErrorNone;
 }
 
 OMX_ERRORTYPE

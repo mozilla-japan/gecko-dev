@@ -52,6 +52,12 @@ PureOmxBufferData::PureOmxBufferData(const PureOmxPlatformLayer& aPlatformLayer,
 PureOmxBufferData::~PureOmxBufferData()
 {
   LOG_BUF("");
+  ReleaseBuffer();
+}
+
+void PureOmxBufferData::ReleaseBuffer()
+{
+  LOG_BUF("");
 
   if (mBuffer) {
     OMX_ERRORTYPE err = OMX_FreeBuffer(mPlatformLayer.GetComponent(),
@@ -60,6 +66,7 @@ PureOmxBufferData::~PureOmxBufferData()
     if (err != OMX_ErrorNone) {
       LOG_BUF("Failed to free the buffer!: 0x%08x", err);
     }
+    mBuffer = nullptr;
   }
 }
 
@@ -202,6 +209,17 @@ PureOmxPlatformLayer::ReleaseOmxBuffer(OMX_DIRTYPE aType,
 {
   LOG("aType: 0x%08x", aType);
 
+  uint32_t len = aBufferList->Length();
+  for (uint32_t i = 0; i < len; i++) {
+    PureOmxBufferData* buffer =
+      static_cast<PureOmxBufferData*>(aBufferList->ElementAt(i).get());
+
+    // Although the ref count of the buffer may not be 0 at this moment, we need
+    // to force release all OpenMAX buffers to flush OMX_CommandStateSet for
+    // switching the state to OMX_StateLoaded.
+    // See OmxDataDecoder::DoAsyncShutdown() for more detail.
+    buffer->ReleaseBuffer();
+  }
   aBufferList->Clear();
 
   return NS_OK;

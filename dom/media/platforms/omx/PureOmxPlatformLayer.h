@@ -21,6 +21,7 @@ public:
   PureOmxBufferData(const PureOmxPlatformLayer& aPlatformLayer,
                     const OMX_PARAM_PORTDEFINITIONTYPE& aPortDef);
 
+  void ReleaseBuffer();
   OMX_DIRTYPE GetPortDirection() const { return mPortDef.eDir; };
 
 protected:

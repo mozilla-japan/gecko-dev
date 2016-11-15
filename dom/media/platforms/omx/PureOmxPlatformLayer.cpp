@@ -60,9 +60,10 @@ void PureOmxBufferData::ReleaseBuffer()
   LOG_BUF("");
 
   if (mBuffer) {
-    OMX_ERRORTYPE err = OMX_FreeBuffer(mPlatformLayer.GetComponent(),
-                                       mPortDef.nPortIndex,
-                                       mBuffer);
+    OMX_ERRORTYPE err;
+    err = OMX_FreeBuffer(mPlatformLayer.GetComponent(),
+                         mPortDef.nPortIndex,
+                         mBuffer);
     if (err != OMX_ErrorNone) {
       LOG_BUF("Failed to free the buffer!: 0x%08x", err);
     }
@@ -168,9 +169,10 @@ PureOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType,
     InitOmxParameter(&portDef);
     portDef.nPortIndex = idx;
 
-    OMX_ERRORTYPE err = GetParameter(OMX_IndexParamPortDefinition,
-                                     &portDef,
-                                     sizeof(OMX_PARAM_PORTDEFINITIONTYPE));
+    OMX_ERRORTYPE err;
+    err = GetParameter(OMX_IndexParamPortDefinition,
+                       &portDef,
+                       sizeof(OMX_PARAM_PORTDEFINITIONTYPE));
     if (err != OMX_ErrorNone) {
       return NS_ERROR_FAILURE;
     } else if (portDef.eDir == aType) {
@@ -282,7 +284,8 @@ PureOmxPlatformLayer::EventHandler(OMX_HANDLETYPE hComponent,
                                    OMX_PTR pEventData)
 {
   PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self, eEventType, nData1, nData2, pEventData] () {
+  nsCOMPtr<nsIRunnable> r =
+    NS_NewRunnableFunction([self, eEventType, nData1, nData2, pEventData] () {
       self->EventHandler(eEventType, nData1, nData2, pEventData);
     });
   self->mTaskQueue->Dispatch(r.forget());
@@ -296,8 +299,8 @@ PureOmxPlatformLayer::EmptyBufferDone(OMX_HANDLETYPE hComponent,
 {
   PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self, pBuffer] () {
-      self->EmptyBufferDone(pBuffer);
-    });
+    self->EmptyBufferDone(pBuffer);
+  });
   self->mTaskQueue->Dispatch(r.forget());
   return OMX_ErrorNone;
 }
@@ -309,8 +312,8 @@ PureOmxPlatformLayer::FillBufferDone(OMX_OUT OMX_HANDLETYPE hComponent,
 {
   PureOmxPlatformLayer* self = static_cast<PureOmxPlatformLayer*>(pAppData);
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self, pBuffer] () {
-      self->FillBufferDone(pBuffer);
-    });
+    self->FillBufferDone(pBuffer);
+  });
   self->mTaskQueue->Dispatch(r.forget());
   return OMX_ErrorNone;
 }

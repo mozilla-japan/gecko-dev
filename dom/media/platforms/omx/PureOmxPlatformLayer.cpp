@@ -364,7 +364,9 @@ GetStandardComponentRole(const nsACString& aMimeType,
       aMimeType.EqualsLiteral("video/mp4v-es")) {
     aRole.Assign("video_decoder.avc");
     return true;
-  } else if (aMimeType.EqualsLiteral("audio/aac")) {
+  } else if (aMimeType.EqualsLiteral("audio/mp4a-latm") ||
+             aMimeType.EqualsLiteral("audio/mp4") ||
+             aMimeType.EqualsLiteral("audio/aac")) {
     aRole.Assign("audio_decoder.aac");
     return true;
   }

@@ -67,6 +67,12 @@ HasExtension(const char* aExtensions, const char* aRequiredExtension)
 bool
 GLXLibrary::EnsureInitialized()
 {
+#ifdef MOZ_WIDGET_GTK
+    if (!GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
+        return false;
+    }
+#endif
+
     if (mInitialized) {
         return true;
     }
@@ -1418,4 +1424,3 @@ GLContextProviderGLX::Shutdown()
 
 } /* namespace gl */
 } /* namespace mozilla */
-

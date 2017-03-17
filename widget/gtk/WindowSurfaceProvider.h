@@ -11,6 +11,10 @@
 #include "mozilla/gfx/Types.h"
 #include "mozilla/gfx/2D.h"
 #include "Units.h"
+#include <gdk/gdk.h>
+#ifdef GDK_WINDOWING_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 
 #include <X11/Xlib.h> // for Window, Display, Visual, etc.
 
@@ -38,6 +42,10 @@ public:
       Window aWindow,
       Visual* aVisual,
       int aDepth);
+#ifdef GDK_WINDOWING_WAYLAND
+   void Initialize(wl_display *aWaylandDisplay,
+                   wl_surface *aWaylandSurface);
+#endif
 
   /**
    * Releases any surfaces created by this provider.
@@ -55,12 +63,17 @@ public:
 private:
   UniquePtr<WindowSurface> CreateWindowSurface();
 
-  Display*  mXDisplay;
-  Window    mXWindow;
-  Visual*   mXVisual;
-  int       mXDepth;
-
+  // Can we access X?
+  bool        mIsX11Display;
+  Display*    mXDisplay;
+  Window      mXWindow;
+  Visual*     mXVisual;
+  int         mXDepth;
   UniquePtr<WindowSurface> mWindowSurface;
+#ifdef GDK_WINDOWING_WAYLAND
+  wl_display* mWaylandDisplay;
+  wl_surface* mWaylandSurface;
+#endif
 };
 
 }  // namespace widget

@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <assert.h>
 #include "nsWindow.h"
 
 #include "mozilla/ArrayUtils.h"
@@ -56,6 +57,10 @@
 #include <gdk/gdkkeysyms.h>
 #if (MOZ_WIDGET_GTK == 2)
 #include <gtk/gtkprivate.h>
+#endif
+
+#if defined(GDK_WINDOWING_WAYLAND)
+#include <gdk/gdkwayland.h>
 #endif
 
 #include "nsGkAtoms.h"
@@ -303,11 +308,14 @@ public:
 
     guint32 GetCurrentTime() const
     {
-        return gdk_x11_get_server_time(mWindow);
+        //return gdk_x11_get_server_time(mWindow);
+        return g_get_monotonic_time()/1000;
     }
 
     void GetTimeAsyncForPossibleBackwardsSkew(const TimeStamp& aNow)
     {
+        return; // TODO
+
         // Check for in-flight request
         if (!mAsyncUpdateStart.IsNull()) {
             return;
@@ -326,6 +334,8 @@ public:
     gboolean PropertyNotifyHandler(GtkWidget* aWidget,
                                    GdkEventProperty* aEvent)
     {
+        return FALSE;
+
         if (aEvent->atom !=
             gdk_x11_xatom_to_atom(TimeStampPropAtom())) {
             return FALSE;
@@ -458,6 +468,9 @@ nsWindow::nsWindow()
     mXDepth   = 0;
 #endif /* MOZ_X11 */
     mPluginType          = PluginType_NONE;
+#ifdef GDK_WINDOWING_WAYLAND
+    mWaylandSurface = nullptr;
+#endif
 
     if (!gGlobalsInitialized) {
         gGlobalsInitialized = true;
@@ -1390,6 +1403,9 @@ SetUserTimeAndStartupIDForActivatedWindow(GtkWidget* aWindow)
 /* static */ guint32
 nsWindow::GetLastUserInputTime()
 {
+    if (!GDK_IS_X11_DISPLAY(gdk_display_get_default()))
+        return sLastUserInputTime;
+
     // gdk_x11_display_get_user_time tracks button and key presses,
     // DESKTOP_STARTUP_ID used to start the app, drop events from external
     // drags, WM_DELETE_WINDOW delete events, but not usually mouse motion nor
@@ -1740,12 +1756,17 @@ nsWindow::GetNativeData(uint32_t aDataType)
         return (void*)mPluginNativeWindow->window;
 
     case NS_NATIVE_DISPLAY: {
-#ifdef MOZ_X11
+#if defined(MOZ_X11)
         GdkDisplay* gdkDisplay = gdk_display_get_default();
         if (GDK_IS_X11_DISPLAY(gdkDisplay)) {
           return GDK_DISPLAY_XDISPLAY(gdkDisplay);
         }
 #endif /* MOZ_X11 */
+#if defined(GDK_WINDOWING_WAYLAND)
+        if (GDK_IS_WAYLAND_DISPLAY(gdkDisplay)) {
+          return gdk_wayland_display_get_wl_display(gdkDisplay);
+        }
+#endif
         return nullptr;
     }
     case NS_NATIVE_SHELLWIDGET:
@@ -1769,10 +1790,15 @@ nsWindow::GetNativeData(uint32_t aDataType)
     }
     case NS_NATIVE_OPENGL_CONTEXT:
       return nullptr;
-#ifdef MOZ_X11
+#if defined(MOZ_X11) || defined(GDK_WINDOWING_WAYLAND)
     case NS_NATIVE_COMPOSITOR_DISPLAY:
-        return gfxPlatformGtk::GetPlatform()->GetCompositorDisplay();
-#endif // MOZ_X11
+        if (mIsX11Display)
+          return gfxPlatformGtk::GetPlatform()->GetXCompositorDisplay();
+        else
+          return gfxPlatformGtk::GetPlatform()->GetWaylandCompositorDisplay();
+    case NS_NATIVE_COMPOSITOR_DISPLAY_X11:
+        return (void *)mIsX11Display;
+#endif // MOZ_X11 || GDK_WINDOWING_WAYLAND
     default:
         NS_WARNING("nsWindow::GetNativeData called with bad value");
         return nullptr;
@@ -2138,6 +2164,12 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     nsIWidgetListener *listener = GetListener();
     if (!listener)
         return FALSE;
+
+#ifdef GDK_WINDOWING_WAYLAND
+    // We don't have any Wayland surface to paint to
+    if (mContainer && !mIsX11Display && !moz_container_map_wl_surface(mContainer))
+        return FALSE;
+#endif
 
     LayoutDeviceIntRegion exposeRegion;
 #if (MOZ_WIDGET_GTK == 2)
@@ -3764,7 +3796,10 @@ nsWindow::Create(nsIWidget* aParent,
         // Create a container to hold child windows and child GtkWidgets.
         GtkWidget *container = moz_container_new();
         mContainer = MOZ_CONTAINER(container);
-
+        // We use mContainer to draw on Wayland
+        if (!mIsX11Display) {
+            shellHasCSD = true;
+        }
 #if (MOZ_WIDGET_GTK == 3)
         // "csd" style is set when widget is realized so we need to call
         // it explicitly now.
@@ -3773,6 +3808,8 @@ nsWindow::Create(nsIWidget* aParent,
         // We can't draw directly to top-level window when client side
         // decorations are enabled. We use container with GdkWindow instead.
         GtkStyleContext* style = gtk_widget_get_style_context(mShell);
+
+        // Always draw to mozcontainer on Wayland
         shellHasCSD = gtk_style_context_has_class(style, "csd");
 #endif
         if (!shellHasCSD) {
@@ -3794,6 +3831,12 @@ nsWindow::Create(nsIWidget* aParent,
 
         // the drawing window
         mGdkWindow = gtk_widget_get_window(eventWidget);
+#if defined(GDK_WINDOWING_WAYLAND)
+        wl_surface *waylandSurface = moz_container_get_wl_surface(
+                                          MOZ_CONTAINER(container));
+        g_object_set_data(G_OBJECT(mGdkWindow), "WAYLAND_SURFACE",
+                          waylandSurface);
+#endif
 
         if (mWindowType == eWindowType_popup) {
             // gdk does not automatically set the cursor for "temporary"
@@ -4021,6 +4064,13 @@ nsWindow::Create(nsIWidget* aParent,
 
       mSurfaceProvider.Initialize(mXDisplay, mXWindow, mXVisual, mXDepth);
     }
+#ifdef GDK_WINDOWING_WAYLAND
+    else {
+      mWaylandDisplay = gdk_wayland_display_get_wl_display(gdk_display_get_default());
+      mWaylandSurface = moz_container_get_wl_surface(MOZ_CONTAINER(mContainer));
+      mSurfaceProvider.Initialize(mWaylandDisplay, mWaylandSurface);
+    }
+#endif
 #endif
 
     return NS_OK;
@@ -4705,14 +4755,10 @@ nsWindow::GrabPointer(guint32 aTime)
     if (!mGdkWindow)
         return;
 
+    GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
     gint retval;
-    retval = gdk_pointer_grab(mGdkWindow, TRUE,
-                              (GdkEventMask)(GDK_BUTTON_PRESS_MASK |
-                                             GDK_BUTTON_RELEASE_MASK |
-                                             GDK_ENTER_NOTIFY_MASK |
-                                             GDK_LEAVE_NOTIFY_MASK |
-                                             GDK_POINTER_MOTION_MASK),
-                              (GdkWindow *)nullptr, nullptr, aTime);
+    retval = gdk_seat_grab(gdkSeat, mGdkWindow, GDK_SEAT_CAPABILITY_ALL_POINTING, TRUE,
+                           nullptr, nullptr, nullptr, nullptr);
 
     if (retval == GDK_GRAB_NOT_VIEWABLE) {
         LOG(("GrabPointer: window not viewable; will retry\n"));
@@ -4736,7 +4782,8 @@ nsWindow::ReleaseGrabs(void)
     LOG(("ReleaseGrabs\n"));
 
     mRetryPointerGrab = false;
-    gdk_pointer_ungrab(GDK_CURRENT_TIME);
+    GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
+    gdk_seat_ungrab(gdkSeat);
 }
 
 GtkWidget *
@@ -7028,9 +7075,18 @@ nsWindow::RoundsWidgetCoordinatesTo()
 void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInitData* aInitData)
 {
   #ifdef MOZ_X11
-  *aInitData = mozilla::widget::CompositorWidgetInitData(
+    if (mIsX11Display) {
+    *aInitData = mozilla::widget::CompositorWidgetInitData(
                                   mXWindow,
                                   nsCString(XDisplayString(mXDisplay)),
                                   GetClientSize());
+  #ifdef GDK_WINDOWING_WAYLAND
+  } else {
+    *aInitData = mozilla::widget::CompositorWidgetInitData(
+                                  (uintptr_t)mWaylandSurface,
+                                  nullptr,
+                                  GetClientSize());
+  }
+  #endif
   #endif
 }

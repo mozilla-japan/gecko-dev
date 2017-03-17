@@ -8,6 +8,10 @@
 #ifndef __nsGTKRemoteService_h__
 #define __nsGTKRemoteService_h__
 
+#if defined(MOZ_WAYLAND) && defined(MOZ_ENABLE_DBUS)
+#define ENABLE_REMOTE_DBUS 1
+#endif
+
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
@@ -15,6 +19,10 @@
 #include "nsInterfaceHashtable.h"
 #include "nsXRemoteService.h"
 #include "mozilla/Attributes.h"
+#ifdef ENABLE_REMOTE_DBUS
+#include "mozilla/ipc/DBusConnectionRefPtr.h"
+#endif
+
 
 class nsGTKRemoteService final : public nsXRemoteService
 {
@@ -24,8 +32,17 @@ public:
   NS_DECL_NSIREMOTESERVICE
 
 
-  nsGTKRemoteService() :
-    mServerWindow(nullptr) { }
+  nsGTKRemoteService() 
+    : mServerWindow(nullptr)
+#ifdef ENABLE_REMOTE_DBUS
+    , mConnection(nullptr)
+#endif    
+    { }
+
+#ifdef ENABLE_REMOTE_DBUS
+    DBusHandlerResult HandleDBusMessage(DBusConnection *aConnection, DBusMessage *msg);
+    void UnregisterDBusInterface(DBusConnection *aConnection);
+#endif
 
 private:
   ~nsGTKRemoteService() { }
@@ -42,8 +59,21 @@ private:
   virtual void SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopStartupID,
                                               uint32_t aTimestamp) override;
 
+#ifdef ENABLE_REMOTE_DBUS
+  void OpenURL(const char *aCommandLine, int aLength);
+
+  DBusHandlerResult OpenURL(DBusMessage *msg);
+  DBusHandlerResult Introspect(DBusMessage *msg);
+
+  bool Connect(const char* aAppName, const char* aProfileName);
+#endif
+
   nsInterfaceHashtable<nsPtrHashKey<GtkWidget>, nsIWeakReference> mWindows;
-  GtkWidget* mServerWindow;  
+  GtkWidget* mServerWindow;
+  bool       mIsX11Display;
+#ifdef ENABLE_REMOTE_DBUS
+  RefPtr<DBusConnection> mConnection;
+#endif
 };
 
 #endif // __nsGTKRemoteService_h__

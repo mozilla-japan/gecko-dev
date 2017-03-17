@@ -4,10 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-FINAL_LIBRARY = 'xul'
-
 SOURCES += [
-    'XRemoteClient.cpp',
+    'mozwayland.c',
 ]
 
-CXXFLAGS += CONFIG['TK_CFLAGS']
+SharedLibrary('mozwayland')
+
+SONAME = 'mozwayland'
+
+CFLAGS += CONFIG['TK_CFLAGS']

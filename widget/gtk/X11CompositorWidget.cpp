@@ -24,23 +24,38 @@ X11CompositorWidget::X11CompositorWidget(const CompositorWidgetInitData& aInitDa
     mXDisplay = aWindow->XDisplay();
   } else {
     mXDisplay = XOpenDisplay(aInitData.XDisplayString().get());
+#ifdef MOZ_WAYLAND
+    if (!mXDisplay) {
+      // TODO - not implemented
+      MOZ_CRASH();
+    }
+#endif
   }
-  mXWindow = (Window)aInitData.XWindow();
 
-  // Grab the window's visual and depth
-  XWindowAttributes windowAttrs;
-  XGetWindowAttributes(mXDisplay, mXWindow, &windowAttrs);
+#ifdef MOZ_WAYLAND
+  if (!mXDisplay) {
+    MOZ_ASSERT(aWindow);
+    mProvider.Initialize(aWindow);
+  } else
+#endif
+  {
+    mXWindow = (Window)aInitData.XWindow();
 
-  Visual*   visual = windowAttrs.visual;
-  int       depth = windowAttrs.depth;
+    // Grab the window's visual and depth
+    XWindowAttributes windowAttrs;
+    XGetWindowAttributes(mXDisplay, mXWindow, &windowAttrs);
 
-  // Initialize the window surface provider
-  mProvider.Initialize(
-    mXDisplay,
-    mXWindow,
-    visual,
-    depth
-    );
+    Visual*   visual = windowAttrs.visual;
+    int       depth = windowAttrs.depth;
+
+    // Initialize the window surface provider
+    mProvider.Initialize(
+      mXDisplay,
+      mXWindow,
+      visual,
+      depth
+      );
+  }
 
   mClientSize = aInitData.InitialClientSize();
 }

@@ -13,7 +13,6 @@ XPIDL_MODULE = 'toolkitremote'
 SOURCES += [
     'nsXRemoteService.cpp',
 ]
-
 if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     SOURCES += [
         'nsGTKRemoteService.cpp',

@@ -11,8 +11,14 @@
 #include "mozilla/gfx/Types.h"
 #include "mozilla/gfx/2D.h"
 #include "Units.h"
+#include <gdk/gdk.h>
+#ifdef MOZ_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 
 #include <X11/Xlib.h> // for Window, Display, Visual, etc.
+
+class nsWindow;
 
 namespace mozilla {
 namespace widget {
@@ -39,6 +45,10 @@ public:
       Visual* aVisual,
       int aDepth);
 
+#ifdef MOZ_WAYLAND
+   void Initialize(nsWindow *aWidget);
+#endif
+
   /**
    * Releases any surfaces created by this provider.
    * This is used by X11CompositorWidget to get rid
@@ -55,12 +65,16 @@ public:
 private:
   UniquePtr<WindowSurface> CreateWindowSurface();
 
-  Display*  mXDisplay;
-  Window    mXWindow;
-  Visual*   mXVisual;
-  int       mXDepth;
-
+  // Can we access X?
+  bool        mIsX11Display;
+  Display*    mXDisplay;
+  Window      mXWindow;
+  Visual*     mXVisual;
+  int         mXDepth;
   UniquePtr<WindowSurface> mWindowSurface;
+#ifdef MOZ_WAYLAND
+  nsWindow*   mWidget;
+#endif
 };
 
 }  // namespace widget

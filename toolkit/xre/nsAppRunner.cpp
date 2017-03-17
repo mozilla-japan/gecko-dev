@@ -246,6 +246,9 @@ nsString gAbsoluteArgv0Path;
 #include <pango/pangofc-fontmap.h>
 #endif
 #include <gtk/gtk.h>
+#ifdef MOZ_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #endif /* MOZ_X11 */
@@ -2879,7 +2882,6 @@ static const char* detectDisplay(void)
 {
   bool tryX11 = false;
   bool tryWayland = false;
-  bool tryBroadway = false;
 
   // Honor user backend selection
   const char *backend = PR_GetEnv("GDK_BACKEND");
@@ -2887,24 +2889,24 @@ static const char* detectDisplay(void)
     // Try all backends
     tryX11 = true;
     tryWayland = true;
-    tryBroadway = true;
   } else if (backend) {
     if (strstr(backend, "x11"))
       tryX11 = true;
+#ifdef MOZ_WAYLAND
     if (strstr(backend, "wayland"))
       tryWayland = true;
-    if (strstr(backend, "broadway"))
-      tryBroadway = true;
+#endif
   }
 
   const char *display_name;
   if (tryX11 && (display_name = PR_GetEnv("DISPLAY"))) {
     return display_name;
-  } else if (tryWayland && (display_name = PR_GetEnv("WAYLAND_DISPLAY"))) {
-    return display_name;
-  } else if (tryBroadway && (display_name = PR_GetEnv("BROADWAY_DISPLAY"))) {
+  }
+#ifdef MOZ_WAYLAND
+  if (tryWayland && (display_name = PR_GetEnv("WAYLAND_DISPLAY"))) {
     return display_name;
   }
+#endif
 
   PR_fprintf(PR_STDERR, "Error: GDK_BACKEND does not match available displays\n");
   return nullptr;
@@ -3785,8 +3787,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     if (saveDisplayArg) {
       SaveWordToEnv("DISPLAY", nsDependentCString(display_name));
     }
-  } else {
-    mDisableRemote = true;
   }
 #endif
 #ifdef MOZ_ENABLE_XREMOTE
@@ -3823,6 +3823,14 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
         // is used last.
         username = pw->pw_name;
       }
+    }
+
+    if (!profile) {
+#ifdef MOZ_DEV_EDITION
+      profile = "dev-edition-default";
+#else
+      profile = "default";
+#endif
     }
 
     nsCOMPtr<nsIFile> mutexDir;

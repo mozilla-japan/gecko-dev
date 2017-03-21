@@ -3831,12 +3831,6 @@ nsWindow::Create(nsIWidget* aParent,
 
         // the drawing window
         mGdkWindow = gtk_widget_get_window(eventWidget);
-#if defined(GDK_WINDOWING_WAYLAND)
-        wl_surface *waylandSurface = moz_container_get_wl_surface(
-                                          MOZ_CONTAINER(container));
-        g_object_set_data(G_OBJECT(mGdkWindow), "WAYLAND_SURFACE",
-                          waylandSurface);
-#endif
 
         if (mWindowType == eWindowType_popup) {
             // gdk does not automatically set the cursor for "temporary"

@@ -24,8 +24,6 @@ public:
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion);
   unsigned char* GetData() { return mBufferData; };
 
-  void Dump(char *lokace);
-
 private:
   unsigned char*     mBufferData;
   int                mBufferAllocated;
@@ -62,8 +60,6 @@ public:
   {
     return aSize <= mAllocatedSize;
   }
-
-  void Dump();
 
 private:
   bool CreateShmPool(int aSize);

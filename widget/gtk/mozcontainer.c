@@ -209,7 +209,7 @@ moz_container_create_surface(MozContainer *container)
       mQueue = wl_display_create_queue(gdk_wayland_display_get_wl_display(display));
     }
 
-    if (container->subcompositor && !container->surface) {
+    if (!container->surface) {
         GdkDisplay *display;
         struct wl_compositor *compositor;
 

@@ -31,6 +31,10 @@ GDK_WINDOWING_X11 - remove
 - is bounds.x bounds.y non-zero??
 - buffer sync - can be undamaged part unsynced?
 - GdkWidnow - show/hide -> callback, get surface and frame callback
+- optimization - give backbuffer directly when requested whole area in Lock()
+- how big is rectangle owerlap in BackBufferWayland::CopyRectangle()?
+(firefox:15155): Gdk-WARNING **: Tried to map a popup with a non-top most parent
+  - it was ok in X11
 */
 #include <assert.h>
 #include <poll.h>
@@ -230,6 +234,8 @@ BackBufferWayland::Resize(int aWidth, int aHeight)
   if (aWidth == mWidth && aHeight == mHeight)
     return true;
 
+  fprintf(stderr, "BackBufferResize, %dx%d -> %dx%d",
+          mWidth, mHeight, aWidth, aHeight);
   ReleaseBuffer();
 
   int newSize = aWidth*aHeight*BUFFER_BPP;
@@ -406,7 +412,6 @@ WindowSurfaceWayland::Init()
   wl_display_dispatch_queue(mDisplay, mQueue);
   wl_display_roundtrip_queue(mDisplay, mQueue);
 
-  wl_display_dispatch_queue(mDisplay, mQueue);
   wl_display_roundtrip_queue(mDisplay, mQueue);
 
   // We should have a valid pixel format now
@@ -420,9 +425,11 @@ WindowSurfaceWayland::Init()
                               this, &err);
 }
 
-WindowSurfaceWayland::WindowSurfaceWayland(wl_display *aDisplay,
+WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
+                                           wl_display *aDisplay,
                                            wl_surface *aSurface)
-  : mSurface(aSurface)
+  : mWidget(aWidget)
+  , mSurface(aSurface)
   , mFrontBuffer(nullptr)
   , mBackBuffer(nullptr)
   , mFrameCallback(nullptr)
@@ -432,10 +439,8 @@ WindowSurfaceWayland::WindowSurfaceWayland(wl_display *aDisplay,
 
   mDisplay = aDisplay;
   Init();
-  wl_proxy_set_queue((struct wl_proxy *)mSurface, mQueue);
 
-  mFrameCallback = wl_surface_frame(aSurface);
-  wl_callback_add_listener(mFrameCallback, &frame_listener, this);
+  wl_proxy_set_queue((struct wl_proxy *)mSurface, mQueue);
 }
 
 WindowSurfaceWayland::~WindowSurfaceWayland()
@@ -483,18 +488,16 @@ void
 WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
 {
   gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
-  gfx::IntSize size = bounds.Size();
+  gfx::IntSize bufferSize(bounds.XMost(), bounds.YMost());
+  gfx::IntSize areaSize = bounds.Size();
 
-  fprintf(stderr, "WindowSurfaceWayland::Request %d,%d -> %d x %d\n",
-                   bounds.x, bounds.y, size.width, size.height);
-/* TODO
-  BackBufferWayland* buffer = GetBufferToDraw(bounds.x + size.width,
-                                              bounds.y + size.height);
-*/
+  fprintf(stderr, "WindowSurfaceWayland::Commit %d,%d, size %d x %d\n",
+                   bounds.x, bounds.y, bufferSize.width, bufferSize.height);
 
-  BackBufferWayland* buffer = GetBufferToDraw(1300, 1300);
-  NS_ASSERTION(buffer,
-               "******** We don't have a buffer to draw to!");
+  LayoutDeviceIntRect rect = mWidget->GetBounds();
+  BackBufferWayland* buffer = GetBufferToDraw(rect.width,
+                                              rect.height);
+  NS_ASSERTION(buffer, "We don't have any buffer to draw to!");
   if (!buffer)
     return;
 
@@ -502,15 +505,17 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
     buffer->CopyRectangle(&mImageBuffer, iter.Get());
   }
 
-  wl_surface_damage(mSurface, bounds.x, bounds.y, size.width, size.height);
-
-  fprintf(stderr, "WindowSurfaceWayland::Commit %d,%d -> %d x %d\n",
-                   bounds.x, bounds.y, size.width, size.height);
-
+  wl_surface_damage(mSurface, bounds.x, bounds.y, areaSize.width, areaSize.height);
+/*
+  if (mFrameCallback) {
+      wl_callback_destroy(mFrameCallback);
+  }
+  mFrameCallback = wl_surface_frame(mSurface);
+  wl_callback_add_listener(mFrameCallback, &frame_listener, this);
+*/
   Draw();
 }
 
-// TODO -> why is it not called?
 void
 WindowSurfaceWayland::Draw()
 {

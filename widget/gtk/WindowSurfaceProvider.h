@@ -18,6 +18,8 @@
 
 #include <X11/Xlib.h> // for Window, Display, Visual, etc.
 
+class nsWindow;
+
 namespace mozilla {
 namespace widget {
 
@@ -43,7 +45,8 @@ public:
       Visual* aVisual,
       int aDepth);
 #ifdef GDK_WINDOWING_WAYLAND
-   void Initialize(wl_display *aWaylandDisplay,
+   void Initialize(nsWindow *aWidget,
+                   wl_display *aWaylandDisplay,
                    wl_surface *aWaylandSurface);
 #endif
 
@@ -71,6 +74,7 @@ private:
   int         mXDepth;
   UniquePtr<WindowSurface> mWindowSurface;
 #ifdef GDK_WINDOWING_WAYLAND
+  nsWindow*   mWidget;
   wl_display* mWaylandDisplay;
   wl_surface* mWaylandSurface;
 #endif

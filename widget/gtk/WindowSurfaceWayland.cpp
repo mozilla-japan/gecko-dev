@@ -464,6 +464,9 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
       mBackBuffer = tmp;
 
       mFrontBuffer->Sync(mBackBuffer);
+
+      // TODO (https://bugzilla.redhat.com/show_bug.cgi?id=1418260)
+      wl_surface_damage(mSurface, 0, 0, aWidth, aHeight);
     }
 
     if (!mFrontBuffer->MatchSize(aWidth, aHeight)) {

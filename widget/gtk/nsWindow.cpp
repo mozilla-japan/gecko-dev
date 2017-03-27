@@ -1738,18 +1738,19 @@ nsWindow::GetNativeData(uint32_t aDataType)
 
         return mGdkWindow;
     }
-
     case NS_NATIVE_PLUGIN_PORT:
-        return SetupPluginPort();
-
-    case NS_NATIVE_PLUGIN_ID:
-        if (!mPluginNativeWindow) {
-          NS_WARNING("no native plugin instance!");
-          return nullptr;
+        if (!mWaylandDisplay) {
+            return SetupPluginPort();
         }
-        // Return the socket widget XID
-        return (void*)mPluginNativeWindow->window;
-
+    case NS_NATIVE_PLUGIN_ID:
+        if (!mWaylandDisplay) {
+            if (!mPluginNativeWindow) {
+                NS_WARNING("no native plugin instance!");
+                return nullptr;
+            }
+            // Return the socket widget XID
+            return (void*)mPluginNativeWindow->window;
+        }
     case NS_NATIVE_DISPLAY: {
 #if defined(MOZ_X11)
         GdkDisplay* gdkDisplay = gdk_display_get_default();

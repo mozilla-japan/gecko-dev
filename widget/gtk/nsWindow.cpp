@@ -308,14 +308,11 @@ public:
 
     guint32 GetCurrentTime() const
     {
-        //return gdk_x11_get_server_time(mWindow);
-        return g_get_monotonic_time()/1000;
+        return gdk_x11_get_server_time(mWindow);
     }
 
     void GetTimeAsyncForPossibleBackwardsSkew(const TimeStamp& aNow)
     {
-        return; // TODO
-
         // Check for in-flight request
         if (!mAsyncUpdateStart.IsNull()) {
             return;
@@ -334,8 +331,6 @@ public:
     gboolean PropertyNotifyHandler(GtkWidget* aWidget,
                                    GdkEventProperty* aEvent)
     {
-        return FALSE;
-
         if (aEvent->atom !=
             gdk_x11_xatom_to_atom(TimeStampPropAtom())) {
             return FALSE;
@@ -3087,11 +3082,16 @@ nsWindow::GetEventTimeStamp(guint32 aEventTime)
         // In this case too, just return the current timestamp.
         return TimeStamp::Now();
     }
-    CurrentX11TimeGetter* getCurrentTime = GetCurrentTimeGetter();
-    MOZ_ASSERT(getCurrentTime,
-               "Null current time getter despite having a window");
-    return TimeConverter().GetTimeStampFromSystemTime(aEventTime,
-                                                      *getCurrentTime);
+    if (!mIsX11Display) {
+        // Wayland uses CLOCK_MONOTONIC for event timestamp on Linux
+        return TimeStamp::Now();
+    } else {
+        CurrentX11TimeGetter* getCurrentTime = GetCurrentTimeGetter();
+        MOZ_ASSERT(getCurrentTime,
+                   "Null current time getter despite having a window");
+        return TimeConverter().GetTimeStampFromSystemTime(aEventTime,
+                                                          *getCurrentTime);
+    }
 }
 
 mozilla::CurrentX11TimeGetter*

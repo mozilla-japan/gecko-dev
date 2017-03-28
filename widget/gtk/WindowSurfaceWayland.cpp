@@ -36,7 +36,6 @@ GDK_WINDOWING_X11 - remove
 #include <assert.h>
 #include <poll.h>
 
-#include "WaylandLibWrapper.h"
 #include "WindowSurfaceWayland.h"
 
 #include "mozilla/gfx/2D.h"

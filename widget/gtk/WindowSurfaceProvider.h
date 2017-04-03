@@ -12,7 +12,7 @@
 #include "mozilla/gfx/2D.h"
 #include "Units.h"
 #include <gdk/gdk.h>
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 #include <gdk/gdkwayland.h>
 #endif
 
@@ -44,7 +44,8 @@ public:
       Window aWindow,
       Visual* aVisual,
       int aDepth);
-#ifdef GDK_WINDOWING_WAYLAND
+
+#ifdef MOZ_WAYLAND
    void Initialize(nsWindow *aWidget,
                    wl_display *aWaylandDisplay,
                    wl_surface *aWaylandSurface);
@@ -73,7 +74,7 @@ private:
   Visual*     mXVisual;
   int         mXDepth;
   UniquePtr<WindowSurface> mWindowSurface;
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
   nsWindow*   mWidget;
   wl_display* mWaylandDisplay;
   wl_surface* mWaylandSurface;

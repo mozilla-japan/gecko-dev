@@ -444,7 +444,7 @@ nsWindow::nsWindow()
 
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
-#ifdef MOZ_WAYLAND
+#ifdef MOZ_WAYLAND_EGL
     mWlEglWindow         = nullptr;
 #endif
     mShell               = nullptr;
@@ -781,7 +781,7 @@ nsWindow::Destroy()
 #endif /* MOZ_X11 && MOZ_WIDGET_GTK == 2 && defined(MOZ_X11) */
 
     GtkWidget *owningWidget = GetMozContainerWidget();
-#ifdef MOZ_WAYLAND
+#ifdef MOZ_WAYLAND_EGL
     if (mWlEglWindow) {
         wl_egl_window_destroy(mWlEglWindow);
         mWlEglWindow = nullptr;
@@ -1809,7 +1809,7 @@ nsWindow::GetNativeData(uint32_t aDataType)
             return (void*)GDK_WINDOW_XID(mGdkWindow);
 #endif
 
-#ifdef MOZ_WAYLAND
+#ifdef MOZ_WAYLAND_EGL
         if (GDK_IS_WAYLAND_WINDOW(mGdkWindow)) {
             if (mWlEglWindow)
                 return mWlEglWindow;

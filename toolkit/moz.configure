@@ -207,6 +207,11 @@ wayland_headers = pkg_check_modules('MOZ_WAYLAND', 'gtk+-wayland-3.0 >= 3.22',
 set_config('MOZ_WAYLAND', depends_if(wayland_headers)(lambda _: True))
 set_define('MOZ_WAYLAND', depends_if(wayland_headers)(lambda _: True))
 
+wayland_egl_headers = pkg_check_modules('MOZ_WAYLAND_EGL', 'wayland-egl',
+                                        when=wayland)
+
+set_config('MOZ_WAYLAND_EGL', depends_if(wayland_egl_headers)(lambda _: True))
+set_define('MOZ_WAYLAND_EGL', depends_if(wayland_egl_headers)(lambda _: True))
 # GL Provider
 # ==============================================================
 option('--with-gl-provider', nargs=1, help='Set GL provider backend type')

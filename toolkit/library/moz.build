@@ -209,6 +209,12 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'winspool',
     ]
 
+if CONFIG['MOZ_WAYLAND']:
+    OS_LIBS += [
+        'wayland-client',
+        'wayland-egl',
+    ]
+
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     OS_LIBS += [
         'dbus',

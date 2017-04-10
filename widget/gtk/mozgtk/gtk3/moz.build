@@ -39,6 +39,10 @@ OS_LIBS += [
 if CONFIG['MOZ_WAYLAND']:
      OS_LIBS += [
          'wayland-client',
+     ]
+
+if CONFIG['MOZ_WAYLAND_EGL']:
+     OS_LIBS += [
          'wayland-egl',
      ]
 

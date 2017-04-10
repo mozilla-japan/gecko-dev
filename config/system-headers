@@ -1191,6 +1191,8 @@ View.h
 Volume.h
 wab.h
 wait.h
+wayland-client.h
+wayland-egl.h
 wchar.h
 wctype.h
 winbase.h

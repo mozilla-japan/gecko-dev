@@ -1191,8 +1191,12 @@ View.h
 Volume.h
 wab.h
 wait.h
+#ifdef MOZ_WAYLAND
 wayland-client.h
+#ifdef MOZ_WAYLAND_EGL
 wayland-egl.h
+#endif
+#endif
 wchar.h
 wctype.h
 winbase.h

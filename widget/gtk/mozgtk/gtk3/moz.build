@@ -35,4 +35,11 @@ OS_LIBS += [
     'gtk-3',
     'gdk-3',
 ]
+
+if CONFIG['MOZ_WAYLAND']:
+     OS_LIBS += [
+         'wayland-client',
+         'wayland-egl',
+     ]
+
 OS_LIBS += as_needed

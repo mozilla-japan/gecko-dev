@@ -210,6 +210,12 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'winspool',
     ]
 
+if CONFIG['MOZ_WAYLAND']:
+    OS_LIBS += [
+        'wayland-client',
+        'wayland-egl',
+    ]
+
 if CONFIG['OS_ARCH'] == 'Linux' and CONFIG['OS_TARGET'] != 'Android':
     OS_LIBS += [
         'rt',

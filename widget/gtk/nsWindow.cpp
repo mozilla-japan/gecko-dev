@@ -447,6 +447,9 @@ nsWindow::nsWindow()
 
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
+#ifdef MOZ_WAYLAND
+    mWlEglWindow         = nullptr;
+#endif
     mShell               = nullptr;
     mCompositorWidgetDelegate = nullptr;
     mHasMappedToplevel   = false;
@@ -786,6 +789,12 @@ nsWindow::Destroy()
     }
 
     GtkWidget *owningWidget = GetMozContainerWidget();
+#ifdef MOZ_WAYLAND
+    if (mWlEglWindow) {
+        wl_egl_window_destroy(mWlEglWindow);
+        mWlEglWindow = nullptr;
+    }
+#endif
     if (mShell) {
         gtk_widget_destroy(mShell);
         mShell = nullptr;
@@ -1759,6 +1768,35 @@ nsWindow::GetNativeData(uint32_t aDataType)
             return this;
         }
         return mIMContext.get();
+    }
+    case NS_NATIVE_EGL_WINDOW: {
+        if (!mGdkWindow)
+            return nullptr;
+
+#ifdef MOZ_X11
+        if (mIsX11Display)
+            return (void*)GDK_WINDOW_XID(mGdkWindow);
+#endif
+
+#ifdef MOZ_WAYLAND
+        if (GDK_IS_WAYLAND_WINDOW(mGdkWindow)) {
+            if (mWlEglWindow)
+                return mWlEglWindow;
+
+            struct wl_surface *wlsurf =
+                gdk_wayland_window_get_wl_surface(mGdkWindow);
+            if (!wlsurf)
+                return nullptr;
+
+            mWlEglWindow =
+                wl_egl_window_create(wlsurf,
+                                     gdk_window_get_width(mGdkWindow),
+                                     gdk_window_get_height(mGdkWindow));
+            return mWlEglWindow;
+        }
+#endif
+
+        return nullptr;
     }
     case NS_NATIVE_OPENGL_CONTEXT:
       return nullptr;

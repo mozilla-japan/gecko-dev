@@ -26,6 +26,7 @@
 #endif /* MOZ_X11 */
 #ifdef MOZ_WAYLAND
 #include <gdk/gdkwayland.h>
+#include <wayland-egl.h>
 #endif
 
 #include "mozilla/widget/WindowSurface.h"
@@ -451,8 +452,12 @@ private:
     GtkWidget          *mShell;
     MozContainer       *mContainer;
     GdkWindow          *mGdkWindow;
+
     PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate;
 
+#ifdef MOZ_WAYLAND
+    struct wl_egl_window *mWlEglWindow;
+#endif
 
     uint32_t            mHasMappedToplevel : 1,
                         mIsFullyObscured : 1,

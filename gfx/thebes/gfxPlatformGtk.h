@@ -121,7 +121,9 @@ public:
       return true;
     }
 
+#ifdef GL_PROVIDER_GLX
     bool SupportsApzTouchInput() const override;
+#endif
 
     void FontsPrefsChanged(const char *aPref) override;
 

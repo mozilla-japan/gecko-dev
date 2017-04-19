@@ -3736,6 +3736,7 @@ nsWindow::Create(nsIWidget* aParent,
             mWindowType != eWindowType_popup || aInitData->mNoAutoHide ?
               GTK_WINDOW_TOPLEVEL : GTK_WINDOW_POPUP;
         mShell = gtk_window_new(type);
+        gtk_window_set_decorated(GTK_WINDOW(mShell), FALSE);
 
         // We only move a general managed toplevel window if someone has
         // actually placed the window somewhere.  If no placement has taken
@@ -3786,6 +3787,7 @@ nsWindow::Create(nsIWidget* aParent,
                 else {
                   bool decorate = mBorderStyle & eBorderStyle_title;
                   gtk_window_set_decorated(GTK_WINDOW(mShell), decorate);
+                  gtk_window_set_decorated(GTK_WINDOW(mShell), FALSE);
                   if (decorate) {
                     gtk_window_set_deletable(GTK_WINDOW(mShell), mBorderStyle & eBorderStyle_close);
                   }

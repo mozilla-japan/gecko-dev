@@ -3901,6 +3901,7 @@ nsWindow::Create(nsIWidget* aParent,
 
         // make sure this is the focus widget in the container
         gtk_widget_show(container);
+        gtk_window_set_decorated(GTK_WINDOW(mShell), FALSE);
         gtk_widget_grab_focus(container);
 
         // the drawing window

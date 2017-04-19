@@ -58,7 +58,7 @@
         macanimationtype="document"
         screenX="4" screenY="4"
         fullscreenbutton="true"
-        sizemode="normal"
+        sizemode="fullscreen"
         retargetdocumentfocus="urlbar"
         persist="screenX screenY width height sizemode">
 

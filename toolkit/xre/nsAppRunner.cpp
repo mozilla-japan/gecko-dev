@@ -246,6 +246,9 @@ nsString gAbsoluteArgv0Path;
 #include <pango/pangofc-fontmap.h>
 #endif
 #include <gtk/gtk.h>
+#ifdef MOZ_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #endif /* MOZ_X11 */
@@ -2889,16 +2892,21 @@ static const char* detectDisplay(void)
   } else if (backend) {
     if (strstr(backend, "x11"))
       tryX11 = true;
+#ifdef MOZ_WAYLAND
     if (strstr(backend, "wayland"))
       tryWayland = true;
+#endif
   }
 
   const char *display_name;
   if (tryX11 && (display_name = PR_GetEnv("DISPLAY"))) {
     return display_name;
-  } else if (tryWayland && (display_name = PR_GetEnv("WAYLAND_DISPLAY"))) {
+  }
+#ifdef MOZ_WAYLAND
+  if (tryWayland && (display_name = PR_GetEnv("WAYLAND_DISPLAY"))) {
     return display_name;
   }
+#endif
 
   PR_fprintf(PR_STDERR, "Error: GDK_BACKEND does not match available displays\n");
   return nullptr;

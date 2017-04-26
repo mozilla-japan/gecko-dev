@@ -40,7 +40,7 @@ public:
     { }
 
     DBusHandlerResult HandleDBusMessage(DBusConnection *aConnection, DBusMessage *msg);
-    void UnregisterDBusInterface(DBusConnection *aConnection);
+    void UnregisterDBusInterface();
 
 private:
   ~nsGTKRemoteService() { }

@@ -19,7 +19,9 @@ class GLContextGtkGL : public GLContext
     friend class GLContextProviderGTKGL;
 
     GdkGLContext* mContext;
-
+    static already_AddRefed<GLContextGTKGL>
+    CreateGLContext(CreateContextFlags flags, const SurfaceCaps& caps,
+                    GdkWindow* aWindow, bool isOffscreen);
 public:
     MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GLContextGTKGL, override)
     GLContextGTKGL(CreateContextFlags flags, const SurfaceCaps& caps,

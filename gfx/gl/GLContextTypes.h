@@ -20,7 +20,8 @@ enum class GLContextType {
     CGL,
     GLX,
     EGL,
-    EAGL
+    EAGL,
+    GTKGL,
 };
 
 enum class OriginPos : uint8_t {

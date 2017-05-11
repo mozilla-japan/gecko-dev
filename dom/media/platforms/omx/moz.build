@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+toolkit = CONFIG['MOZ_WIDGET_TOOLKIT']
+
 EXPORTS += [
     'OmxDecoderModule.h',
 ]
@@ -21,7 +23,7 @@ LOCAL_INCLUDES += [
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and (CONFIG['ANDROID_VERSION'] == '19' or CONFIG['ANDROID_VERSION'] == '20'):
+if toolkit == 'gonk' and (CONFIG['ANDROID_VERSION'] == '19' or CONFIG['ANDROID_VERSION'] == '20'):
     # Suppress some GCC/clang warnings being treated as errors:
     #  - about attributes on forward declarations for types that are already
     #    defined, which complains about an important MOZ_EXPORT for android::AString
@@ -42,6 +44,11 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and (CONFIG['ANDROID_VERSION'] == '19'
     ]
     EXTRA_DSO_LDOPTS += [
         '-libbinder',
+    ]
+
+if toolkit == 'gtk2' or toolkit == 'gtk3':
+    UNIFIED_SOURCES += [
+        'PureOmxPlatformLayer.cpp',
     ]
 
 FINAL_LIBRARY = 'xul'

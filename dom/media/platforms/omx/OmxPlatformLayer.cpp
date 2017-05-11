@@ -8,6 +8,11 @@
 
 #include "OMX_VideoExt.h" // For VP8.
 
+#ifdef MOZ_WIDGET_GTK
+#define OMX_PLATFORM_PURE
+#include "PureOmxPlatformLayer.h"
+#endif
+
 #if defined(MOZ_WIDGET_GONK) && (ANDROID_VERSION == 20 || ANDROID_VERSION == 19)
 #define OMX_PLATFORM_GONK
 #include "GonkOmxPlatformLayer.h"
@@ -303,6 +308,23 @@ OmxPlatformLayer::Create(OmxDataDecoder* aDataDecoder,
                          layers::ImageContainer* aImageContainer)
 {
   return new GonkOmxPlatformLayer(aDataDecoder, aPromiseLayer, aTaskQueue, aImageContainer);
+}
+
+#elif defined(OMX_PLATFORM_PURE)
+
+bool
+OmxPlatformLayer::SupportsMimeType(const nsACString& aMimeType)
+{
+  return PureOmxPlatformLayer::SupportsMimeType(aMimeType);
+}
+
+OmxPlatformLayer*
+OmxPlatformLayer::Create(OmxDataDecoder* aDataDecoder,
+                         OmxPromiseLayer* aPromiseLayer,
+                         TaskQueue* aTaskQueue,
+                         layers::ImageContainer* aImageContainer)
+{
+  return new PureOmxPlatformLayer(aDataDecoder, aPromiseLayer, aTaskQueue, aImageContainer);
 }
 
 #else // For platforms without OMX IL support.

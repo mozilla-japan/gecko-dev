@@ -9,7 +9,31 @@
 #include "OmxDataDecoder.h"
 #include "OmxPlatformLayer.h"
 
+#ifdef MOZ_WIDGET_GTK
+#include "PureOmxPlatformLayer.h"
+#endif
+
 namespace mozilla {
+
+/* static */ bool
+OmxDecoderModule::Init()
+{
+#ifdef MOZ_WIDGET_GTK
+  return PureOmxPlatformLayer::Init();
+#endif
+  return false;
+}
+
+OmxDecoderModule*
+OmxDecoderModule::Create()
+{
+#ifdef MOZ_WIDGET_GTK
+  if (!Init())
+    return nullptr;
+  return new OmxDecoderModule();
+#endif
+  return nullptr;
+}
 
 already_AddRefed<MediaDataDecoder>
 OmxDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)

@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+toolkit = CONFIG['MOZ_WIDGET_TOOLKIT']
+
 EXPORTS += [
     'agnostic/AgnosticDecoderModule.h',
     'agnostic/OpusDecoder.h',
@@ -55,6 +57,14 @@ if CONFIG['MOZ_FFMPEG']:
         'ffmpeg',
     ]
 
+if toolkit == 'gtk2' or toolkit == 'gtk3':
+    EXPORTS += [
+        'omx/OmxCoreLibLinker.h',
+    ]
+    UNIFIED_SOURCES += [
+        'omx/OmxCoreLibLinker.cpp',
+    ]
+
 if CONFIG['MOZ_APPLEMEDIA']:
   EXPORTS += [
       'apple/AppleDecoderModule.h',
@@ -76,7 +86,7 @@ if CONFIG['MOZ_GONK_MEDIACODEC']:
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
+if toolkit == 'android':
     EXPORTS += [
         'android/AndroidDecoderModule.h',
     ]

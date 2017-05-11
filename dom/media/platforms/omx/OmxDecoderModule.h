@@ -11,8 +11,14 @@
 
 namespace mozilla {
 
+class OmxDecoderModule;
+
 class OmxDecoderModule : public PlatformDecoderModule {
 public:
+  // Called on main thread.
+  static bool Init();
+  static OmxDecoderModule* Create();
+
   already_AddRefed<MediaDataDecoder>
   CreateVideoDecoder(const CreateDecoderParams& aParams) override;
 

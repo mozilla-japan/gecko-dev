@@ -96,10 +96,12 @@ protected:
 };
 
 OmxDataDecoder::OmxDataDecoder(const TrackInfo& aTrackInfo,
+                               TaskQueue* aTaskQueue,
                                MediaDataDecoderCallback* aCallback,
                                layers::ImageContainer* aImageContainer)
   : mMonitor("OmxDataDecoder")
   , mOmxTaskQueue(CreateMediaDecodeTaskQueue())
+  , mReaderTaskQueue(aTaskQueue)
   , mImageContainer(aImageContainer)
   , mWatchManager(this, mOmxTaskQueue)
   , mOmxState(OMX_STATETYPE::OMX_StateInvalid, "OmxDataDecoder::mOmxState")
@@ -152,8 +154,6 @@ RefPtr<MediaDataDecoder::InitPromise>
 OmxDataDecoder::Init()
 {
   LOG("");
-  mReaderTaskQueue = AbstractThread::GetCurrent()->AsTaskQueue();
-  MOZ_ASSERT(mReaderTaskQueue);
 
   RefPtr<InitPromise> p = mInitPromise.Ensure(__func__);
   RefPtr<OmxDataDecoder> self = this;

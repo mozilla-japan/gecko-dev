@@ -14,6 +14,9 @@
 #include "GeckoProfiler.h"
 #include "mozilla/widget/CompositorWidget.h"
 
+#define GLES2_LIB "libGLESv2.so"
+#define GLES2_LIB2 "libGLESv2.so.2"
+
 #define GET_NATIVE_WINDOW(aWidget) ((GdkWindow*) aWidget->GetNativeData(NS_NATIVE_WINDOW))
 
 namespace mozilla {
@@ -45,8 +48,20 @@ GLContextGTKGL::~GLContextGTKGL()
 bool
 GLContextGTKGL::Init()
 {
+    if (!OpenLibrary(GLES2_LIB)) {
+#if defined(XP_UNIX)
+        if (!OpenLibrary(GLES2_LIB2)) {
+            NS_WARNING("Couldn't load GLES2 LIB.");
+            return false;
+        }
+#endif
+    }
+
+    SetupLookupFunction();
     if (!InitWithPrefix("gl", true))
         return false;
+
+    gdk_gl_context_make_current(mContext);
 
     return true;
 }
@@ -72,7 +87,8 @@ GLContextGTKGL::IsCurrent()
 bool
 GLContextGTKGL::SetupLookupFunction()
 {
-    return false;
+    mLookupFunc = (PlatformLookupFunction)sEGLLibrary.mSymbols.fGetProcAddress;
+    return true;
 }
 
 bool

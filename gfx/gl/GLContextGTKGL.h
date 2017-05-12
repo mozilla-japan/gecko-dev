@@ -8,6 +8,7 @@
 #define GLCONTEXTGTKGL_H_
 
 #include "GLContext.h"
+#include "GLLibraryEGL.h"
 
 #include <gdk/gdk.h>
 

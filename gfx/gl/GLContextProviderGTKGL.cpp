@@ -127,7 +127,7 @@ GLContextProviderGTKGL::CreateForWindow(nsIWidget* aWidget, bool aForceAccelerat
     SurfaceCaps caps = SurfaceCaps::Any();
     GdkWindow *aWindow = GET_NATIVE_WINDOW(aWidget);
     RefPtr<GLContextGTKGL> gl = GLContextGTKGL::CreateGLContext(CreateContextFlags::NONE,
-                                                              caps, aWindow, false);
+                                                                caps, aWindow, false);
     if (!gl->Init()) {
         gl = nullptr;
         return nullptr;

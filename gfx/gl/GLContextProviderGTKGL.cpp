@@ -112,6 +112,10 @@ GLContextProviderGTKGL::CreateForWindow(nsIWidget* aWidget, bool aForceAccelerat
     GdkWindow *aWindow = GET_NATIVE_WINDOW(aWidget);
     RefPtr<GLContextGTKGL> gl = GLContextGTKGL::CreateGLContext(CreateContextFlags::NONE,
                                                               caps, aWindow, false);
+    if (!gl->Init()) {
+        gl = nullptr;
+        return nullptr;
+    }
     return gl.forget();
 }
 

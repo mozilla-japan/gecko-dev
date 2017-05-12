@@ -23,8 +23,7 @@ using namespace mozilla::gfx;
 using namespace mozilla::widget;
 
 GLContextGTKGL::GLContextGTKGL(CreateContextFlags flags, const SurfaceCaps& caps,
-                               GdkGLContext* context, bool isOffscreen,
-                               ContextProfile profile)
+                               GdkGLContext* context, bool isOffscreen)
     : GLContext(flags, caps, nullptr, isOffscreen)
     , mContext(context),
       mOwnsContext(true)
@@ -87,17 +86,16 @@ GLContextGTKGL::CreateGLContext(CreateContextFlags flags, const SurfaceCaps& cap
                                 GdkWindow* aWindow, bool isOffscreen)
 {
     RefPtr<GLContextGTKGL> glContext;
-    GdkGLContext context;
+    GdkGLContext* context = nullptr;
     GError* error = nullptr;
-    context = gdk_window_create_gl_context(window, &error);
+    context = gdk_window_create_gl_context(aWindow, &error);
     if (!context) {
         NS_WARNING("Failed to create GdkGLContext!");
         g_error_free(error);
         return nullptr;
     }
     glContext = new GLContextGTKGL(flags, caps,
-                                   context, isOffscreen,
-                                   profile);
+                                   context, isOffscreen);
     return glContext.forget();
 }
 
@@ -112,8 +110,8 @@ GLContextProviderGTKGL::CreateForWindow(nsIWidget* aWidget, bool aForceAccelerat
 {
     SurfaceCaps caps = SurfaceCaps::Any();
     GdkWindow *aWindow = GET_NATIVE_WINDOW(aWidget);
-    RefPtr<GdkGLContext> gl = GLContextGTKGL::CreateGLContext(CreateContextFlags::NONE,
-                                                              caps, aWindow, false)
+    RefPtr<GLContextGTKGL> gl = GLContextGTKGL::CreateGLContext(CreateContextFlags::NONE,
+                                                              caps, aWindow, false);
     return gl.forget();
 }
 

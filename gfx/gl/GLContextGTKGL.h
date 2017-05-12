@@ -14,18 +14,17 @@
 namespace mozilla {
 namespace gl {
 
-class GLContextGtkGL : public GLContext
+class GLContextGTKGL : public GLContext
 {
     friend class GLContextProviderGTKGL;
 
-    GdkGLContext* mContext;
     static already_AddRefed<GLContextGTKGL>
     CreateGLContext(CreateContextFlags flags, const SurfaceCaps& caps,
                     GdkWindow* aWindow, bool isOffscreen);
 public:
     MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GLContextGTKGL, override)
     GLContextGTKGL(CreateContextFlags flags, const SurfaceCaps& caps,
-                   GdkGLContext* context, bool isOffscreen, ContextProfile profile);
+                   GdkGLContext* context, bool isOffscreen);
 
     ~GLContextGTKGL();
 
@@ -46,6 +45,11 @@ public:
     virtual bool SupportsRobustness() const override { return false; }
 
     virtual bool SwapBuffers() override { return false; };
+
+private:
+    GdkGLContext* mContext;
+    bool mOwnsContext;
+
 };
 
 } // namespace gl

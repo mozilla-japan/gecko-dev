@@ -117,6 +117,15 @@ elif gl_provider == 'GLX':
     EXPORTS += [
         'SharedSurfaceGLX.h'
     ]
+elif gl_provider == 'GTKGL':
+    # GLContextProviderGLX.cpp needs to be kept out of UNIFIED_SOURCES
+    # as it includes X11 headers which cause conflicts.
+    SOURCES += [
+        'GLContextProviderGTKGL.cpp',
+    ]
+    EXPORTS += [
+        'GLContextGTKGL.h',
+    ]
 
 UNIFIED_SOURCES += [
     'AndroidSurfaceTexture.cpp',

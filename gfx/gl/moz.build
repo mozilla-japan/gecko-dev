@@ -118,13 +118,23 @@ elif gl_provider == 'GLX':
         'SharedSurfaceGLX.h'
     ]
 elif gl_provider == 'GTKGL':
-    # GLContextProviderGLX.cpp needs to be kept out of UNIFIED_SOURCES
-    # as it includes X11 headers which cause conflicts.
+    # These files include GDK headers that are unfriendly to unified builds
     SOURCES += [
         'GLContextProviderGTKGL.cpp',
     ]
     EXPORTS += [
         'GLContextGTKGL.h',
+    ]
+    if CONFIG['GCC_USE_GNU_LD']:
+        no_as_needed = ['-Wl,--no-as-needed']
+        as_needed = ['-Wl,--as-needed']
+    else:
+        no_as_needed = []
+        as_needed = []
+
+    OS_LIBS += no_as_needed
+    OS_LIBS += [
+        'gdk-3',
     ]
 
 UNIFIED_SOURCES += [

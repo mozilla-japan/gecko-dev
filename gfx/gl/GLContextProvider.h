@@ -48,6 +48,13 @@ namespace gl {
   #define GL_CONTEXT_PROVIDER_DEFAULT GLContextProviderGLX
 #endif
 
+#define GL_CONTEXT_PROVIDER_NAME GLContextProviderGTKGL
+#include "GLContextProviderImpl.h"
+#undef GL_CONTEXT_PROVIDER_NAME
+#ifndef GL_CONTEXT_PROVIDER_DEFAULT
+  #define GL_CONTEXT_PROVIDER_DEFAULT GLContextProviderGTKGL
+#endif
+
 #define GL_CONTEXT_PROVIDER_NAME GLContextProviderEGL
 #include "GLContextProviderImpl.h"
 #undef GL_CONTEXT_PROVIDER_NAME

@@ -8,6 +8,7 @@
 #include "nsDebug.h"
 #include "nsIWidget.h"
 #include <gdk/gdk.h>
+#include <gtk/gtk.h> // For version checking.
 #include "gfxFailure.h"
 #include "gfxPrefs.h"
 #include "prenv.h"
@@ -110,6 +111,10 @@ GLContextGTKGL::CreateGLContext(CreateContextFlags flags, const SurfaceCaps& cap
         g_error_free(error);
         return nullptr;
     }
+
+    if (GTK_CHECK_VERSION(3, 22, 0))
+        gdk_gl_context_set_use_es(context, true);
+
     glContext = new GLContextGTKGL(flags, caps,
                                    context, isOffscreen);
     return glContext.forget();

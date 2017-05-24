@@ -274,6 +274,7 @@ public:
     // descendant windows
     GtkWidget*         GetMozContainerWidget();
     GdkWindow*         GetGdkWindow() { return mGdkWindow; }
+    GdkSeat*           GetGdkSeat() { return mGdkSeat; }
     bool               IsDestroyed() { return mIsDestroyed; }
 
     void               DispatchDragEvent(mozilla::EventMessage aMsg,
@@ -448,6 +449,7 @@ private:
     GtkWidget          *mShell;
     MozContainer       *mContainer;
     GdkWindow          *mGdkWindow;
+    GdkSeat            *mGdkSeat;
 #ifdef MOZ_WAYLAND_EGL
     struct wl_egl_window *mWlEglWindow;
 #endif

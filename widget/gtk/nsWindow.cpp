@@ -447,6 +447,7 @@ nsWindow::nsWindow()
 
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
+    mGdkSeat             = nullptr;
 #ifdef MOZ_WAYLAND_EGL
     mWlEglWindow         = nullptr;
 #endif
@@ -4321,8 +4322,8 @@ nsWindow::NativeShow(bool aAction)
                 mRetryPointerGrab = false;
                 //sRetryGrabTime = aTime;
 
-                GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
-                gint retval = gdk_seat_grab(gdkSeat, gtk_widget_get_window(mShell),
+                mGdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
+                gint retval = gdk_seat_grab(mGdkSeat, gtk_widget_get_window(mShell),
                                             GDK_SEAT_CAPABILITY_ALL_POINTING, TRUE,
                                             nullptr, nullptr, show_shell, mShell);
                 MOZ_ASSERT(retval == GDK_GRAB_SUCCESS);
@@ -4832,20 +4833,19 @@ nsWindow::GrabPointer(guint32 aTime)
 
     if (!mGdkWindow)
         return;
-/*
-    GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
+
+    mGdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
     gint retval;
-    retval = gdk_seat_grab(gdkSeat, mGdkWindow, GDK_SEAT_CAPABILITY_ALL_POINTING, TRUE,
+    retval = gdk_seat_grab(mGdkSeat, mGdkWindow, GDK_SEAT_CAPABILITY_ALL_POINTING, TRUE,
                            nullptr, nullptr, nullptr, nullptr);
-*/
-    gint retval;
-    retval = gdk_pointer_grab(mGdkWindow, TRUE,
-                              (GdkEventMask)(GDK_BUTTON_PRESS_MASK |
-                                             GDK_BUTTON_RELEASE_MASK |
-                                             GDK_ENTER_NOTIFY_MASK |
-                                             GDK_LEAVE_NOTIFY_MASK |
-                                             GDK_POINTER_MOTION_MASK),
-                              (GdkWindow *)nullptr, nullptr, aTime);
+    // gint retval;
+    // retval = gdk_pointer_grab(mGdkWindow, TRUE,
+    //                           (GdkEventMask)(GDK_BUTTON_PRESS_MASK |
+    //                                          GDK_BUTTON_RELEASE_MASK |
+    //                                          GDK_ENTER_NOTIFY_MASK |
+    //                                          GDK_LEAVE_NOTIFY_MASK |
+    //                                          GDK_POINTER_MOTION_MASK),
+    //                           (GdkWindow *)nullptr, nullptr, aTime);
 
     if (retval == GDK_GRAB_NOT_VIEWABLE) {
         LOG(("GrabPointer: window not viewable; will retry\n"));
@@ -4869,11 +4869,10 @@ nsWindow::ReleaseGrabs(void)
     LOG(("ReleaseGrabs\n"));
 
     mRetryPointerGrab = false;
-/*
-    GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
-    gdk_seat_ungrab(gdkSeat);
-*/
-    gdk_pointer_ungrab(GDK_CURRENT_TIME);
+
+    if (mGdkSeat)
+        gdk_seat_ungrab(mGdkSeat);
+    // gdk_pointer_ungrab(GDK_CURRENT_TIME);
 }
 
 GtkWidget *

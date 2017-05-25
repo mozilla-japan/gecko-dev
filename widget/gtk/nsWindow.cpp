@@ -3799,10 +3799,6 @@ nsWindow::Create(nsIWidget* aParent,
         // Create a container to hold child windows and child GtkWidgets.
         GtkWidget *container = moz_container_new();
         mContainer = MOZ_CONTAINER(container);
-        // We use mContainer to draw on Wayland
-        if (!mIsX11Display) {
-            shellHasCSD = true;
-        }
 #if (MOZ_WIDGET_GTK == 3)
         // "csd" style is set when widget is realized so we need to call
         // it explicitly now.
@@ -3814,6 +3810,10 @@ nsWindow::Create(nsIWidget* aParent,
 
         // Always draw to mozcontainer on Wayland
         shellHasCSD = gtk_style_context_has_class(style, "csd");
+        // We use mContainer to draw on Wayland
+        if (!mIsX11Display) {
+            shellHasCSD = true;
+        }
 #endif
         if (!shellHasCSD) {
             // Use mShell's window for drawing and events.

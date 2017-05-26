@@ -5160,14 +5160,16 @@ nsWindow::PerformFullscreenTransition(FullscreenTransitionStage aStage,
                        transitionData, nullptr);
 }
 
-static bool
-IsFullscreenSupported(GtkWidget* aShell)
+bool
+nsWindow::IsFullscreenSupported()
 {
 #ifdef MOZ_X11
-    GdkScreen* screen = gtk_widget_get_screen(aShell);
-    GdkAtom atom = gdk_atom_intern("_NET_WM_STATE_FULLSCREEN", FALSE);
-    if (!gdk_x11_screen_supports_net_wm_hint(screen, atom)) {
-        return false;
+    if (mIsX11Display) {
+        GdkScreen* screen = gtk_widget_get_screen(mShell);
+        GdkAtom atom = gdk_atom_intern("_NET_WM_STATE_FULLSCREEN", FALSE);
+        if (!gdk_x11_screen_supports_net_wm_hint(screen, atom)) {
+            return false;
+        }
     }
 #endif
     return true;
@@ -5179,7 +5181,7 @@ nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen)
     LOG(("nsWindow::MakeFullScreen [%p] aFullScreen %d\n",
          (void *)this, aFullScreen));
 
-    if (!IsFullscreenSupported(mShell)) {
+    if (!IsFullscreenSupported()) {
         return NS_ERROR_NOT_AVAILABLE;
     }
 

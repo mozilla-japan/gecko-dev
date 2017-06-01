@@ -212,6 +212,12 @@ GLContextEGL::GLContextEGL(CreateContextFlags flags, const SurfaceCaps& caps,
 #endif
 }
 
+static GLContextEGL*
+GetGlobalContextEGL()
+{
+    return static_cast<GLContextEGL*>(GLContextProviderEGL::GetGlobalContext());
+}
+
 GLContextEGL::~GLContextEGL()
 {
     MarkDestroyed();
@@ -688,6 +694,8 @@ CreateConfig(EGLConfig* aConfig, nsIWidget* aWidget)
     }
 }
 
+static StaticRefPtr<GLContext> gGlobalContext;
+
 already_AddRefed<GLContext>
 GLContextProviderEGL::CreateWrappingExisting(void* aContext, void* aSurface)
 {
@@ -707,6 +715,7 @@ GLContextProviderEGL::CreateWrappingExisting(void* aContext, void* aSurface)
                                                (EGLContext)aContext);
     gl->SetIsDoubleBuffered(true);
     gl->mOwnsContext = false;
+    gGlobalContext = gl;
 
     return gl.forget();
 }
@@ -741,8 +750,9 @@ GLContextProviderEGL::CreateForWindow(nsIWidget* aWidget, bool aForceAccelerated
     }
 
     SurfaceCaps caps = SurfaceCaps::Any();
+    GLContextEGL* shareContext = GetGlobalContextEGL();
     RefPtr<GLContextEGL> gl = GLContextEGL::CreateGLContext(CreateContextFlags::NONE,
-                                                            caps, nullptr, false, config,
+                                                            caps, shareContext, false, config,
                                                             surface, &discardFailureId);
     if (!gl) {
         MOZ_CRASH("GFX: Failed to create EGLContext!\n");
@@ -926,7 +936,8 @@ GLContextEGL::CreateEGLPBufferOffscreenContext(CreateContextFlags flags,
         return nullptr;
     }
 
-    RefPtr<GLContextEGL> gl = GLContextEGL::CreateGLContext(flags, configCaps, nullptr,
+    GLContextEGL* shareContext = GetGlobalContextEGL();
+    RefPtr<GLContextEGL> gl = GLContextEGL::CreateGLContext(flags, configCaps, shareContext,
                                                             true, config, surface,
                                                             out_failureId);
     if (!gl) {
@@ -1015,12 +1026,27 @@ GLContextProviderEGL::CreateOffscreen(const mozilla::gfx::IntSize& size,
 /*static*/ GLContext*
 GLContextProviderEGL::GetGlobalContext()
 {
-    return nullptr;
+    // TODO: get egl context sharing to work well with multiple threads
+    if (gfxEnv::DisableContextSharingGlx())
+        return nullptr;
+
+    static bool triedToCreateContext = false;
+    if (!triedToCreateContext) {
+        triedToCreateContext = true;
+
+        MOZ_RELEASE_ASSERT(!gGlobalContext, "GFX: Global GL context already initialized.");
+        nsCString discardFailureId;
+        RefPtr<GLContext> temp = CreateHeadless(CreateContextFlags::NONE, &discardFailureId);
+        gGlobalContext = temp;
+    }
+
+    return gGlobalContext;
 }
 
 /*static*/ void
 GLContextProviderEGL::Shutdown()
 {
+    gGlobalContext = nullptr;
 }
 
 } /* namespace gl */

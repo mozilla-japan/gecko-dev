@@ -441,7 +441,6 @@ private:
                                    gint* aRootX, gint* aRootY);
     void               ClearCachedResources();
     nsIWidgetListener* GetListener();
-    bool               IsFullscreenSupported();
 
     GtkWidget          *mShell;
     MozContainer       *mContainer;

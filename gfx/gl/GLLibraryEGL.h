@@ -676,11 +676,20 @@ public:
 
 #else
     EGLContext CachedCurrentContext() {
-        return nullptr;
+        return sCurrentContext;
     }
-    void UnsetCachedCurrentContext() {}
-    void SetCachedCurrentContext(EGLContext aCtx) { }
-    bool CachedCurrentContextMatches() { return true; }
+    void UnsetCachedCurrentContext() {
+        sCurrentContext = nullptr;
+    }
+    void SetCachedCurrentContext(EGLContext aCtx) {
+        sCurrentContext = aCtx;
+    }
+    bool CachedCurrentContextMatches() {
+        return sCurrentContext == fGetCurrentContext();
+    }
+private:
+    EGLContext sCurrentContext;
+public:
 #endif
 
 private:

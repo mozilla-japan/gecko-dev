@@ -1409,6 +1409,14 @@ bool nsBaseWidget::ShouldUseOffMainThreadCompositing()
   return gfxPlatform::UsesOffMainThreadCompositing();
 }
 
+static bool ShouldUseBasicCompositorWorkaround() {
+#if defined(MOZ_WAYLAND_EGL)
+  return true;
+#else
+  return false;
+#endif
+}
+
 LayerManager* nsBaseWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
                                             LayersBackend aBackendHint,
                                             LayerManagerPersistence aPersistence)
@@ -1418,13 +1426,16 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayerTransactionChild* aShadowManag
       // We are shutting down, do not try to re-create a LayerManager
       return nullptr;
     }
+
+    static bool workaroundFlag = true;
     // Try to use an async compositor first, if possible
-    if (ShouldUseOffMainThreadCompositing()) {
+    if (workaroundFlag && ShouldUseOffMainThreadCompositing()) {
       // e10s uses the parameter to pass in the shadow manager from the TabChild
       // so we don't expect to see it there since this doesn't support e10s.
       NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");
       CreateCompositor();
     }
+    workaroundFlag = !ShouldUseBasicCompositorWorkaround();
 
     if (!mLayerManager) {
       mLayerManager = CreateBasicLayerManager();

@@ -89,8 +89,16 @@ SharedSurface_EGLImage::SharedSurface_EGLImage(GLContext* gl,
 
 SharedSurface_EGLImage::~SharedSurface_EGLImage()
 {
+#ifdef MOZ_WAYLAND_EGL
+    // XXX Current PowerVR driver might call eglDestroyImageKHR automatically?
+    // In more detail, see similiar situation wrokaround:
+    // https://developer.qualcomm.com/comment/6289#comment-6289
+    if(mGL->Vendor() != GLVendor::Imagination) {
+        mEGL->fDestroyImage(Display(), mImage);
+    }
+#else
     mEGL->fDestroyImage(Display(), mImage);
-
+#endif
 #ifndef MOZ_WAYLAND_EGL
     if (mSync) {
         // We can't call this unless we have the ext, but we will always have

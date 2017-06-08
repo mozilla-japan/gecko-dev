@@ -74,7 +74,11 @@ SharedSurface_EGLImage::SharedSurface_EGLImage(GLContext* gl,
                     gl,
                     size,
                     hasAlpha,
+#ifdef MOZ_WAYLAND_EGL
+                    true)
+#else
                     false) // Can't recycle, as mSync changes never update TextureHost.
+#endif
     , mMutex("SharedSurface_EGLImage mutex")
     , mEGL(egl)
     , mFormats(formats)
@@ -87,12 +91,14 @@ SharedSurface_EGLImage::~SharedSurface_EGLImage()
 {
     mEGL->fDestroyImage(Display(), mImage);
 
+#ifndef MOZ_WAYLAND_EGL
     if (mSync) {
         // We can't call this unless we have the ext, but we will always have
         // the ext if we have something to destroy.
         mEGL->fDestroySync(Display(), mSync);
         mSync = 0;
     }
+#endif
 
     if (!mGL || !mGL->MakeCurrent())
         return;
@@ -113,6 +119,7 @@ SharedSurface_EGLImage::ProducerReleaseImpl()
     MutexAutoLock lock(mMutex);
     mGL->MakeCurrent();
 
+#ifndef MOZ_WAYLAND_EGL
     if (mEGL->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync) &&
         mGL->IsExtensionSupported(GLContext::OES_EGL_sync))
     {
@@ -130,6 +137,7 @@ SharedSurface_EGLImage::ProducerReleaseImpl()
             return;
         }
     }
+#endif
 
     MOZ_ASSERT(!mSync);
     mGL->fFinish();

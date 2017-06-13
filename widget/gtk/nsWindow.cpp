@@ -428,6 +428,9 @@ nsWindow::nsWindow() {
 
 #if GTK_CHECK_VERSION(3, 4, 0)
   mLastScrollEventTime = GDK_CURRENT_TIME;
+
+  if (Preferences::GetInt("dom.w3c_touch_events.enabled", 0) == 3)
+    RegisterTouchWindow();
 #endif
   mPendingConfigures = 0;
   mCSDSupportLevel = CSD_SUPPORT_NONE;

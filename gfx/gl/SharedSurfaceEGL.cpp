@@ -39,15 +39,16 @@ SharedSurface_EGLImage::Create(GLContext* prodGL,
         return Move(ret);
     }
 
+    const GLuint target = prodGL->GetPreferredEGLImageTextureTarget();
     EGLClientBuffer buffer = reinterpret_cast<EGLClientBuffer>(uintptr_t(prodTex));
     EGLImage image = egl->fCreateImage(egl->Display(), context,
-                                       LOCAL_EGL_GL_TEXTURE_2D, buffer,
+                                       target, buffer,
                                        nullptr);
     if (!image) {
         prodGL->fDeleteTextures(1, &prodTex);
         return Move(ret);
     }
-    prodGL->fEGLImageTargetTexture2D(LOCAL_EGL_GL_TEXTURE_2D, image);
+    prodGL->fEGLImageTargetTexture2D(target, image);
 
     ret.reset( new SharedSurface_EGLImage(prodGL, egl, size, hasAlpha,
                                           formats, prodTex, image) );

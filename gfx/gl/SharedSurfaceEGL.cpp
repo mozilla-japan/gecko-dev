@@ -47,6 +47,7 @@ SharedSurface_EGLImage::Create(GLContext* prodGL,
         prodGL->fDeleteTextures(1, &prodTex);
         return Move(ret);
     }
+    prodGL->fEGLImageTargetTexture2D(LOCAL_EGL_GL_TEXTURE_2D, image);
 
     ret.reset( new SharedSurface_EGLImage(prodGL, egl, size, hasAlpha,
                                           formats, prodTex, image) );

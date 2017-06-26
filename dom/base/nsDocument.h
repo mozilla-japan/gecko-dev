@@ -1388,6 +1388,7 @@ public:
   static bool IsWebComponentsEnabled(mozilla::dom::NodeInfo* aNodeInfo);
   // Check whether web components are enabled for the given window.
   static bool IsWebComponentsEnabled(nsPIDOMWindowInner* aWindow);
+  static bool IsBrowserElementEnabled(JSContext* aCx, JSObject* aObject);
 
   RefPtr<mozilla::EventListenerManager> mListenerManager;
   RefPtr<mozilla::dom::StyleSheetList> mDOMStyleSheets;

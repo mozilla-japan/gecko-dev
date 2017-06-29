@@ -3,11 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//#include "mozilla/XREAppData.h"
 #include "nsXREAppData.h"
 #include "nsXULAppAPI.h"
 #include "application.ini.h"
-//#include "mozilla/Bootstrap.h"
 #include "nsXPCOMGlue.h"
 #include "nsXPCOMPrivate.h"
 #include "nsStringGlue.h"

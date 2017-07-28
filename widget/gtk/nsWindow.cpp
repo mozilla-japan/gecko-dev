@@ -1776,12 +1776,12 @@ nsWindow::GetNativeData(uint32_t aDataType)
 #if defined(MOZ_X11)
         GdkDisplay* gdkDisplay = gdk_display_get_default();
         if (GDK_IS_X11_DISPLAY(gdkDisplay)) {
-          return GDK_DISPLAY_XDISPLAY(gdkDisplay);
+            return GDK_DISPLAY_XDISPLAY(gdkDisplay);
         }
 #endif /* MOZ_X11 */
 #if defined(MOZ_WAYLAND)
         if (GDK_IS_WAYLAND_DISPLAY(gdkDisplay)) {
-          return gdk_wayland_display_get_wl_display(gdkDisplay);
+            return gdk_wayland_display_get_wl_display(gdkDisplay);
         }
 #endif
         return nullptr;
@@ -1789,8 +1789,11 @@ nsWindow::GetNativeData(uint32_t aDataType)
     case NS_NATIVE_SHELLWIDGET:
         return GetToplevelWidget();
 
-    case NS_NATIVE_SHAREABLE_WINDOW:
-        return (void *) GDK_WINDOW_XID(gdk_window_get_toplevel(mGdkWindow));
+    case NS_NATIVE_SHAREABLE_WINDOW: {
+        return mIsX11Display ?
+            (void *) GDK_WINDOW_XID(gdk_window_get_toplevel(mGdkWindow)) :
+            nullptr;
+    }
     case NS_NATIVE_PLUGIN_OBJECT_PTR:
         return (void *) mPluginNativeWindow;
     case NS_RAW_NATIVE_IME_CONTEXT: {

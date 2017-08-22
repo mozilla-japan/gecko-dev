@@ -4330,6 +4330,15 @@ nsWindow::NativeShow(bool aAction)
             if (mWindowType != eWindowType_invisible) {
                 SetUserTimeAndStartupIDForActivatedWindow(mShell);
             }
+
+            // Ensure to resize the window before showing the window.
+            // Resizing GdkWindow is required before resizing GtkWindow.
+            // See the implementation of gtk_window_get_remembered_size() and
+            // gtk_window_compute_configure_request_size() for more detail.
+            GdkRectangle size = DevicePixelsToGdkSizeRoundUp(mBounds.Size());
+            gdk_window_resize(gtk_widget_get_window(mShell), size.width, size.height);
+            gtk_window_resize(GTK_WINDOW(mShell), size.width, size.height);
+
             gtk_widget_show(mShell);
         }
         else if (mContainer) {

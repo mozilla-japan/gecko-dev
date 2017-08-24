@@ -290,6 +290,8 @@ nsGTKRemoteService::Connect(const char* aAppName, const char* aProfileName)
     // We're already connected so we don't need to reconnect
     return true;
   }
+  if (strlen(aProfileName) == 0)
+    return false;
 
   mConnection = already_AddRefed<DBusConnection>(
     dbus_bus_get(DBUS_BUS_SESSION, nullptr));

@@ -4312,12 +4312,6 @@ nsWindow::NativeMoveResize()
     }
 }
 
-static void
-show_shell(GdkSeat *seat, GdkWindow *window, gpointer user_data)
-{
-    gtk_widget_show(GTK_WIDGET(user_data));
-}
-
 void
 nsWindow::NativeShow(bool aAction)
 {

@@ -240,7 +240,7 @@ nsRetrievalContextWayland::ConfigureKeyboard(wl_seat_capability caps)
   if (caps & WL_SEAT_CAPABILITY_KEYBOARD) {
       mKeyboard = wl_seat_get_keyboard(mSeat);
       wl_keyboard_add_listener(mKeyboard, &keyboard_listener, this);
-  } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD)) {
+  } else if (mKeyboard) {
       wl_keyboard_destroy(mKeyboard);
       mKeyboard = nullptr;
   }
@@ -267,6 +267,7 @@ nsRetrievalContextWayland::InitDataDeviceManager(wl_registry *registry,
   int data_device_manager_version = MIN (version, 3);
   mDataDeviceManager = (wl_data_device_manager *)wl_registry_bind(registry, id,
       &wl_data_device_manager_interface, data_device_manager_version);
+  InitDataDeviceListener();
 }
 
 void nsRetrievalContextWayland::InitSeat(wl_registry *registry,
@@ -275,6 +276,7 @@ void nsRetrievalContextWayland::InitSeat(wl_registry *registry,
 {
   mSeat = (wl_seat*)wl_registry_bind(registry, id, &wl_seat_interface, 1);
   wl_seat_add_listener(mSeat, &seat_listener, data);
+  InitDataDeviceListener();
 }
 
 static void
@@ -306,22 +308,11 @@ static const struct wl_registry_listener clipboard_registry_listener = {
     gdk_registry_handle_global_remove
 };
 
-nsRetrievalContextWayland::nsRetrievalContextWayland(void)
-  : mInitialized(false),
-    mDataDeviceManager(nullptr),
-    mDataOffer(nullptr)
+void
+nsRetrievalContextWayland::InitDataDeviceListener(void)
 {
-    const gchar* charset;
-    g_get_charset(&charset);
-    mTextPlainLocale = g_strdup_printf("text/plain;charset=%s", charset);
-
-    mDisplay = gdk_wayland_display_get_wl_display(gdk_display_get_default());
-    wl_registry_add_listener(wl_display_get_registry(mDisplay),
-                             &clipboard_registry_listener, this);
-    wl_display_roundtrip(mDisplay);
-    wl_display_roundtrip(mDisplay);
-
-    // We don't have Wayland support here so just give up
+    if (mInitialized)
+        return;
     if (!mDataDeviceManager || !mSeat)
         return;
 
@@ -335,6 +326,26 @@ nsRetrievalContextWayland::nsRetrievalContextWayland(void)
     wl_display_roundtrip(mDisplay);
 
     mInitialized = true;
+}
+
+nsRetrievalContextWayland::nsRetrievalContextWayland(void)
+  : mInitialized(false),
+    mDisplay(nullptr),
+    mSeat(nullptr),
+    mDataDeviceManager(nullptr),
+    mDataOffer(nullptr),
+    mKeyboard(nullptr),
+    mTextPlainLocale(nullptr)
+{
+    const gchar* charset;
+    g_get_charset(&charset);
+    mTextPlainLocale = g_strdup_printf("text/plain;charset=%s", charset);
+
+    mDisplay = gdk_wayland_display_get_wl_display(gdk_display_get_default());
+    wl_registry_add_listener(wl_display_get_registry(mDisplay),
+                             &clipboard_registry_listener, this);
+    wl_display_roundtrip(mDisplay);
+    wl_display_roundtrip(mDisplay);
 }
 
 nsRetrievalContextWayland::~nsRetrievalContextWayland(void)

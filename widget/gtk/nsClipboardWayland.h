@@ -37,6 +37,7 @@ public:
 
     void InitDataDeviceManager(wl_registry *registry, uint32_t id, uint32_t version);
     void InitSeat(wl_registry *registry, uint32_t id, uint32_t version, void *data);
+    void InitDataDeviceListener(void);
 private:
     virtual ~nsRetrievalContextWayland() override;
 

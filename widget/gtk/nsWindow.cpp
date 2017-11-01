@@ -3641,8 +3641,7 @@ nsWindow::Create(nsIWidget* aParent,
     GtkWindow      *topLevelParent = nullptr;
     nsWindow       *parentnsWindow = nullptr;
     GtkWidget      *eventWidget = nullptr;
-    bool            shellHasCSD = false;
-    bool            drawToContainer = false;
+    bool            drawToContainer = !mIsX11Display;
 
     if (aParent) {
         parentnsWindow = static_cast<nsWindow*>(aParent);
@@ -3829,26 +3828,30 @@ nsWindow::Create(nsIWidget* aParent,
         // it explicitly now.
         gtk_widget_realize(mShell);
 
-        // We can't draw directly to top-level window when client side
-        // decorations are enabled. We use container with GdkWindow instead.
-        GtkStyleContext* style = gtk_widget_get_style_context(mShell);
-        shellHasCSD = gtk_style_context_has_class(style, "csd");
-        drawToContainer = shellHasCSD || !mIsX11Display;
+        /* There are two cases here:
+         *
+         * 1) We're running on Gtk+ without client side decorations.
+         *    Content is rendered to mShell window and we listen
+         *    to the Gtk+ events on mShell
+         * 2) We're running on Gtk+ > 3.20 and client side decorations
+         *    are drawn by Gtk+ to mShell. Content is rendered to mContainer
+         *    and we listen to the Gtk+ events on mContainer.
+         */
+        if (mIsX11Display) {
+            GtkStyleContext* style = gtk_widget_get_style_context(mShell);
+            drawToContainer = gtk_style_context_has_class(style, "csd");
+        }
 #endif
-        if (!drawToContainer) {
-            // Use mShell's window for drawing and events.
-            gtk_widget_set_has_window(container, FALSE);
-        }
+        eventWidget = (drawToContainer) ? container : mShell;
 
-        // Prevent GtkWindow from painting a background to flicker.
-        // We also need that on Wayland to ensure the underlying mShell
-        // window is transparent when CSD is enabled.
-        if (!shellHasCSD) {
-            gtk_widget_set_app_paintable(mShell, TRUE);
-        }
-
-        eventWidget = drawToContainer ? container : mShell;
         gtk_widget_add_events(eventWidget, kEvents);
+
+        // Prevent GtkWindow from painting a background to avoid flickering.
+        gtk_widget_set_app_paintable(eventWidget, TRUE);
+
+        // If we draw to mContainer window then configure it now because
+        // gtk_container_add() realizes the child widget.
+        gtk_widget_set_has_window(container, drawToContainer);
 
         gtk_container_add(GTK_CONTAINER(mShell), container);
         gtk_widget_realize(container);

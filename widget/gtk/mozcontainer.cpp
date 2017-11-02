@@ -148,60 +148,6 @@ moz_container_move (MozContainer *container, GtkWidget *child_widget,
 }
 
 /* static methods */
-
-#if defined(MOZ_WAYLAND)
-gboolean
-moz_container_map_surface(MozContainer *container)
-{
-    GdkDisplay *display = gtk_widget_get_display(GTK_WIDGET(container));
-    if (GDK_IS_X11_DISPLAY(display))
-        return FALSE;
-
-    if (container->subsurface && container->surface)
-        return TRUE;
-
-    if (!container->surface) {
-        struct wl_compositor *compositor;
-        compositor = gdk_wayland_display_get_wl_compositor(display);
-        container->surface = wl_compositor_create_surface(compositor);
-    }
-
-    if (!container->subsurface) {
-        GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(container));
-        wl_surface* gtk_surface = gdk_wayland_window_get_wl_surface(window);
-        if (!gtk_surface) {
-          // We requested the underlying wl_surface too early.
-          return FALSE;
-        }
-
-        container->subsurface =
-          wl_subcompositor_get_subsurface (container->subcompositor,
-                                           container->surface,
-                                           gtk_surface);
-        gint x, y;
-        gdk_window_get_position(window, &x, &y);
-        wl_subsurface_set_position(container->subsurface, x, y);
-        wl_subsurface_set_desync(container->subsurface);
-
-        // Don't accept input on subsurface
-        GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET (container));
-        wl_compositor* compositor = gdk_wayland_display_get_wl_compositor(display);
-        wl_region* region = wl_compositor_create_region(compositor);
-        wl_surface_set_input_region(container->surface, region);
-        wl_region_destroy(region);
-    }
-    return TRUE;
-}
-
-static void
-moz_container_unmap_surface(MozContainer *container)
-{
-    g_clear_pointer(&container->subsurface, wl_subsurface_destroy);
-    g_clear_pointer(&container->surface, wl_surface_destroy);
-}
-
-#endif
-
 void
 moz_container_class_init (MozContainerClass *klass)
 {

@@ -3897,7 +3897,7 @@ nsWindow::Create(nsIWidget* aParent,
 
               // Popups may not have SCD enabled so we need to mask
               // toplevel widget here.
-              GtkWidget *inputWidget = shellHasCSD ? container : mShell;
+              GtkWidget *inputWidget = drawToContainer ? container : mShell;
               gtk_widget_input_shape_combine_region(inputWidget, region);
               cairo_region_destroy(region);
 #endif

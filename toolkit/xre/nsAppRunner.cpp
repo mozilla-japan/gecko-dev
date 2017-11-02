@@ -3949,13 +3949,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   else {
     mDisableRemote = true;
   }
-#ifdef MOZ_WAYLAND
-  else if (GDK_IS_WAYLAND_DISPLAY(mGdkDisplay)) {
-    if (saveDisplayArg) {
-      SaveWordToEnv("WAYLAND_DISPLAY", nsDependentCString(display_name));
-    }
-  }
-#endif
 #endif
 #ifdef MOZ_ENABLE_XREMOTE
   // handle --remote now that xpcom is fired up

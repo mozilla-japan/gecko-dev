@@ -199,6 +199,11 @@
         "visibleDefaultEngines": [
           "google-nocodes", "yahoo", "bing", "amazondotcom", "duckduckgo", "twitter", "wikipedia"
         ]
+      },
+      "experimental-hidden": {
+        "visibleDefaultEngines": [
+          "amazon-ca", "amazon-au", "google-2018"
+        ]
       }
     },
     "en-ZA": {
@@ -240,6 +245,11 @@
       "default": {
         "visibleDefaultEngines": [
           "google", "yahoo-mx", "bing", "amazondotcom", "duckduckgo", "mercadolibre-mx", "twitter", "wikipedia-es"
+        ]
+      },
+      "experimental-hidden": {
+        "visibleDefaultEngines": [
+          "amazon-mx"
         ]
       }
     },
@@ -289,6 +299,11 @@
       "default": {
         "visibleDefaultEngines": [
           "google", "wikipedia-fy-NL", "bolcom-fy-NL"
+        ]
+      },
+      "experimental-hidden": {
+        "visibleDefaultEngines": [
+          "amazon-nl"
         ]
       }
     },
@@ -366,6 +381,13 @@
       "default": {
         "visibleDefaultEngines": [
           "google", "yahoo", "bing", "amazondotcom", "list-am", "wikipedia-hy-AM"
+        ]
+      }
+    },
+    "ia": {
+      "default": {
+        "visibleDefaultEngines": [
+          "google", "yahoo", "bing", "amazondotcom", "duckduckgo", "twitter", "wikipedia-ia"
         ]
       }
     },
@@ -528,12 +550,24 @@
         "visibleDefaultEngines": [
           "google", "yahoo", "bing", "bolcom-nl", "duckduckgo", "twitter", "wikipedia-nl"
         ]
+      },
+      "experimental-hidden": {
+        "visibleDefaultEngines": [
+          "amazon-nl"
+        ]
       }
     },
     "nn-NO": {
       "default": {
         "visibleDefaultEngines": [
           "google", "duckduckgo", "gulesider-mobile-NO", "twitter", "wikipedia-NN"
+        ]
+      }
+    },
+    "oc": {
+      "default": {
+        "visibleDefaultEngines": [
+          "google", "yahoo-france", "bing", "wikipedia-oc", "wiktionary-oc"
         ]
       }
     },
@@ -562,6 +596,11 @@
       "default": {
         "visibleDefaultEngines": [
           "google", "yahoo-br", "bing", "twitter", "wikipedia-pt"
+        ]
+      },
+      "experimental-hidden": {
+        "visibleDefaultEngines": [
+          "amazon-br"
         ]
       }
     },

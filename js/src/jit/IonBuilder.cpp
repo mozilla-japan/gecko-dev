@@ -2439,7 +2439,6 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_GENERATOR:
 
       // Misc
-      case JSOP_ARRAYPUSH:
       case JSOP_DELNAME:
       case JSOP_FINALLY:
       case JSOP_GETRVAL:
@@ -2458,6 +2457,7 @@ IonBuilder::inspectOpcode(JSOp op)
         break;
 
       case JSOP_UNUSED126:
+      case JSOP_UNUSED206:
       case JSOP_UNUSED223:
       case JSOP_LIMIT:
         break;
@@ -12629,11 +12629,8 @@ IonBuilder::jsop_iternext()
     MDefinition* def = current->pop();
     MOZ_ASSERT(def->type() == MIRType::Value);
 
-    // The value should be a string in most cases. Legacy generators can return
-    // non-string values, so in that case bailout and give up Ion compilation
-    // of the script.
-    MInstruction* unbox = MUnbox::New(alloc(), def, MIRType::String, MUnbox::Fallible,
-                                      Bailout_IterNextNonString);
+    // The value must be a string.
+    MInstruction* unbox = MUnbox::New(alloc(), def, MIRType::String, MUnbox::Infallible);
     current->add(unbox);
     current->push(unbox);
 

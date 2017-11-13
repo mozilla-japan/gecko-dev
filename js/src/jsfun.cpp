@@ -131,7 +131,7 @@ IsSloppyNormalFunction(JSFunction* fun)
         if (fun->isBuiltin() || fun->isBoundFunction())
             return false;
 
-        if (fun->isStarGenerator() || fun->isAsync())
+        if (fun->isGenerator() || fun->isAsync())
             return false;
 
         MOZ_ASSERT(fun->isInterpreted());
@@ -420,13 +420,13 @@ ResolveInterpretedFunctionPrototype(JSContext* cx, HandleFunction fun, HandleId 
     // the function object itself, unless the function is an ES6 generator.  In
     // that case, per the 15 July 2013 ES6 draft, section 15.19.3, its parent is
     // the GeneratorObjectPrototype singleton.
-    bool isStarGenerator = fun->isStarGenerator();
+    bool isGenerator = fun->isGenerator();
     Rooted<GlobalObject*> global(cx, &fun->global());
     RootedObject objProto(cx);
     if (isAsyncGenerator)
         objProto = GlobalObject::getOrCreateAsyncGeneratorPrototype(cx, global);
-    else if (isStarGenerator)
-        objProto = GlobalObject::getOrCreateStarGeneratorObjectPrototype(cx, global);
+    else if (isGenerator)
+        objProto = GlobalObject::getOrCreateGeneratorObjectPrototype(cx, global);
     else
         objProto = GlobalObject::getOrCreateObjectPrototype(cx, global);
     if (!objProto)
@@ -441,7 +441,7 @@ ResolveInterpretedFunctionPrototype(JSContext* cx, HandleFunction fun, HandleId 
     // non-enumerable, and writable.  However, per the 15 July 2013 ES6 draft,
     // section 15.19.3, the .prototype of a generator function does not link
     // back with a .constructor.
-    if (!isStarGenerator && !isAsyncGenerator) {
+    if (!isGenerator && !isAsyncGenerator) {
         RootedValue objVal(cx, ObjectValue(*fun));
         if (!DefineDataProperty(cx, proto, cx->names().constructor, objVal, 0))
             return false;
@@ -477,7 +477,7 @@ JSFunction::needsPrototypeProperty()
     if (isBuiltin())
         return IsWrappedAsyncGenerator(this);
 
-    return isConstructor() || isStarGenerator() || isAsync();
+    return isConstructor() || isGenerator() || isAsync();
 }
 
 static bool
@@ -572,7 +572,7 @@ js::XDRInterpretedFunction(XDRState<mode>* xdr, HandleScope enclosingScope,
 {
     enum FirstWordFlag {
         HasAtom             = 0x1,
-        HasStarGeneratorProto = 0x2,
+        HasGeneratorProto   = 0x2,
         IsLazy              = 0x4,
         HasSingletonType    = 0x8
     };
@@ -595,8 +595,8 @@ js::XDRInterpretedFunction(XDRState<mode>* xdr, HandleScope enclosingScope,
         if (fun->explicitName() || fun->hasCompileTimeName() || fun->hasGuessedAtom())
             firstword |= HasAtom;
 
-        if (fun->isStarGenerator() || fun->isAsync())
-            firstword |= HasStarGeneratorProto;
+        if (fun->isGenerator() || fun->isAsync())
+            firstword |= HasGeneratorProto;
 
         if (fun->isInterpretedLazy()) {
             // Encode a lazy script.
@@ -636,12 +636,12 @@ js::XDRInterpretedFunction(XDRState<mode>* xdr, HandleScope enclosingScope,
 
     if (mode == XDR_DECODE) {
         RootedObject proto(cx);
-        if (firstword & HasStarGeneratorProto) {
+        if (firstword & HasGeneratorProto) {
             // If we are off thread, the generator meta-objects have
             // already been created by js::StartOffThreadParseTask, so
             // JSContext* will not be necessary.
             JSContext* context = cx->helperThread() ? nullptr : cx;
-            proto = GlobalObject::getOrCreateStarGeneratorFunctionPrototype(context, cx->global());
+            proto = GlobalObject::getOrCreateGeneratorFunctionPrototype(context, cx->global());
             if (!proto)
                 return false;
         }
@@ -1024,12 +1024,8 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool isToSource)
     }
 
     RootedScript script(cx);
-
-    if (fun->hasScript()) {
+    if (fun->hasScript())
         script = fun->nonLazyScript();
-        if (MOZ_UNLIKELY(script->isGeneratorExp()))
-            return NewStringCopyZ<CanGC>(cx, "function genexp() {\n    [generator expression]\n}");
-    }
 
     // Default class constructors are self-hosted, but have their source
     // objects overridden to refer to the span of the class statement or
@@ -1084,7 +1080,7 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool isToSource)
             if (!out.append("function"))
                 return nullptr;
 
-            if (fun->isStarGenerator()) {
+            if (fun->isGenerator()) {
                 if (!out.append('*'))
                     return nullptr;
             }
@@ -1592,34 +1588,6 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext* cx, HandleFuncti
             return true;
         }
 
-        // Lazy script caching is only supported for leaf functions. If a
-        // script with inner functions was returned by the cache, those inner
-        // functions would be delazified when deep cloning the script, even if
-        // they have never executed.
-        //
-        // Additionally, the lazy script cache is not used during incremental
-        // GCs, to avoid resurrecting dead scripts after incremental sweeping
-        // has started.
-        if (canRelazify && !JS::IsIncrementalGCInProgress(cx)) {
-            LazyScriptCache::Lookup lookup(cx, lazy);
-            cx->caches().lazyScriptCache.lookup(lookup, script.address());
-        }
-
-        if (script) {
-            RootedScope enclosingScope(cx, lazy->enclosingScope());
-            RootedScript clonedScript(cx, CloneScriptIntoFunction(cx, enclosingScope, fun, script));
-            if (!clonedScript)
-                return false;
-
-            clonedScript->setSourceObject(lazy->sourceObject());
-
-            fun->initAtom(script->functionNonDelazifying()->displayAtom());
-
-            if (!lazy->maybeScript())
-                lazy->initScript(clonedScript);
-            return true;
-        }
-
         MOZ_ASSERT(lazy->scriptSource()->hasSourceData());
 
         // Parse and compile the script from source.
@@ -1653,9 +1621,6 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext* cx, HandleFuncti
             // specify this from the lazy script so that if an identical lazy
             // script is encountered later a match can be determined.
             script->setColumn(lazy->column());
-
-            LazyScriptCache::Lookup lookup(cx, lazy);
-            cx->caches().lazyScriptCache.insert(lookup, script);
 
             // Remember the lazy script on the compiled script, so it can be
             // stored on the function again in case of re-lazification.
@@ -1740,20 +1705,6 @@ JSFunction::maybeRelazify(JSRuntime* rt)
     comp->scheduleDelazificationForDebugger();
 }
 
-static bool
-fun_isGenerator(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    JSFunction* fun;
-    if (!IsFunctionObject(args.thisv(), &fun)) {
-        args.rval().setBoolean(false);
-        return true;
-    }
-
-    args.rval().setBoolean(fun->isStarGenerator());
-    return true;
-}
-
 const JSFunctionSpec js::function_methods[] = {
 #if JS_HAS_TOSOURCE
     JS_FN(js_toSource_str,   fun_toSource,   0,0),
@@ -1761,7 +1712,6 @@ const JSFunctionSpec js::function_methods[] = {
     JS_FN(js_toString_str,   fun_toString,   0,0),
     JS_FN(js_apply_str,      fun_apply,      2,0),
     JS_FN(js_call_str,       fun_call,       1,0),
-    JS_FN("isGenerator",     fun_isGenerator,0,0),
     JS_SELF_HOSTED_FN("bind", "FunctionBind", 2, 0),
     JS_SYM_FN(hasInstance, fun_symbolHasInstance, 1, JSPROP_READONLY | JSPROP_PERMANENT),
     JS_FS_END
@@ -1781,7 +1731,7 @@ CreateDynamicFunction(JSContext* cx, const CallArgs& args, GeneratorKind generat
         return false;
     }
 
-    bool isStarGenerator = generatorKind == StarGenerator;
+    bool isGenerator = generatorKind == GeneratorKind::Generator;
     bool isAsync = asyncKind == AsyncFunction;
 
     RootedScript maybeScript(cx);
@@ -1794,11 +1744,11 @@ CreateDynamicFunction(JSContext* cx, const CallArgs& args, GeneratorKind generat
 
     const char* introductionType = "Function";
     if (isAsync) {
-        if (isStarGenerator)
+        if (isGenerator)
             introductionType = "AsyncGenerator";
         else
             introductionType = "AsyncFunction";
-    } else if (generatorKind != NotGenerator) {
+    } else if (isGenerator) {
         introductionType = "GeneratorFunction";
     }
 
@@ -1820,7 +1770,7 @@ CreateDynamicFunction(JSContext* cx, const CallArgs& args, GeneratorKind generat
     }
     if (!sb.append("function"))
          return false;
-    if (isStarGenerator) {
+    if (isGenerator) {
         if (!sb.append('*'))
             return false;
     }
@@ -1893,15 +1843,15 @@ CreateDynamicFunction(JSContext* cx, const CallArgs& args, GeneratorKind generat
     // Use %Generator% for generators and the unwrapped function of async
     // functions and async generators.
     RootedObject defaultProto(cx);
-    if (isStarGenerator || isAsync) {
-        defaultProto = GlobalObject::getOrCreateStarGeneratorFunctionPrototype(cx, global);
+    if (isGenerator || isAsync) {
+        defaultProto = GlobalObject::getOrCreateGeneratorFunctionPrototype(cx, global);
         if (!defaultProto)
             return false;
     }
 
     // Step 30-37 (reordered).
     RootedObject globalLexical(cx, &global->lexicalEnvironment());
-    JSFunction::Flags flags = (isStarGenerator || isAsync)
+    JSFunction::Flags flags = (isGenerator || isAsync)
                               ? JSFunction::INTERPRETED_LAMBDA_GENERATOR_OR_ASYNC
                               : JSFunction::INTERPRETED_LAMBDA;
     AllocKind allocKind = isAsync ? AllocKind::FUNCTION_EXTENDED : AllocKind::FUNCTION;
@@ -1926,7 +1876,7 @@ CreateDynamicFunction(JSContext* cx, const CallArgs& args, GeneratorKind generat
                                               : SourceBufferHolder::NoOwnership;
     SourceBufferHolder srcBuf(chars.begin().get(), chars.length(), ownership);
     if (isAsync) {
-        if (isStarGenerator) {
+        if (isGenerator) {
             if (!CompileStandaloneAsyncGenerator(cx, &fun, options, srcBuf, parameterListEnd))
                 return false;
         } else {
@@ -1934,7 +1884,7 @@ CreateDynamicFunction(JSContext* cx, const CallArgs& args, GeneratorKind generat
                 return false;
         }
     } else {
-        if (isStarGenerator) {
+        if (isGenerator) {
             if (!CompileStandaloneGenerator(cx, &fun, options, srcBuf, parameterListEnd))
                 return false;
         } else {
@@ -1951,7 +1901,7 @@ CreateDynamicFunction(JSContext* cx, const CallArgs& args, GeneratorKind generat
     if (isAsync) {
         // Create the async function wrapper.
         JSObject* wrapped;
-        if (isStarGenerator) {
+        if (isGenerator) {
             wrapped = proto
                       ? WrapAsyncGeneratorWithProto(cx, fun, proto)
                       : WrapAsyncGenerator(cx, fun);
@@ -1981,28 +1931,28 @@ bool
 js::Function(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CreateDynamicFunction(cx, args, NotGenerator, SyncFunction);
+    return CreateDynamicFunction(cx, args, GeneratorKind::NotGenerator, SyncFunction);
 }
 
 bool
 js::Generator(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CreateDynamicFunction(cx, args, StarGenerator, SyncFunction);
+    return CreateDynamicFunction(cx, args, GeneratorKind::Generator, SyncFunction);
 }
 
 bool
 js::AsyncFunctionConstructor(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CreateDynamicFunction(cx, args, NotGenerator, AsyncFunction);
+    return CreateDynamicFunction(cx, args, GeneratorKind::NotGenerator, AsyncFunction);
 }
 
 bool
 js::AsyncGeneratorConstructor(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CreateDynamicFunction(cx, args, StarGenerator, AsyncFunction);
+    return CreateDynamicFunction(cx, args, GeneratorKind::Generator, AsyncFunction);
 }
 
 bool
@@ -2145,8 +2095,8 @@ NewFunctionClone(JSContext* cx, HandleFunction fun, NewObjectKind newKind,
                  gc::AllocKind allocKind, HandleObject proto)
 {
     RootedObject cloneProto(cx, proto);
-    if (!proto && (fun->isStarGenerator() || fun->isAsync())) {
-        cloneProto = GlobalObject::getOrCreateStarGeneratorFunctionPrototype(cx, cx->global());
+    if (!proto && (fun->isGenerator() || fun->isAsync())) {
+        cloneProto = GlobalObject::getOrCreateGeneratorFunctionPrototype(cx, cx->global());
         if (!cloneProto)
             return nullptr;
     }

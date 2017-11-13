@@ -39,6 +39,10 @@ PER_PROJECT_PARAMETERS = {
         'include_nightly': True,
     },
 
+    'try-comm-central': {
+        'target_tasks_method': 'try_tasks',
+    },
+
     'ash': {
         'target_tasks_method': 'ash_tasks',
         'optimize_target_tasks': True,
@@ -165,6 +169,8 @@ def get_decision_parameters(options):
     ]
     parameters['existing_tasks'] = {}
     parameters['do_not_optimize'] = []
+    parameters['build_number'] = 1
+    parameters['next_version'] = None
 
     # owner must be an email, but sometimes (e.g., for ffxbld) it is not, in which
     # case, fake it
@@ -201,7 +207,7 @@ def get_decision_parameters(options):
     task_config_file = os.path.join(os.getcwd(), 'try_task_config.json')
 
     # load try settings
-    if project == 'try':
+    if 'try' in project:
         parameters['try_mode'] = None
         if os.path.isfile(task_config_file):
             parameters['try_mode'] = 'try_task_config'

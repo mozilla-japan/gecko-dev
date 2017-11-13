@@ -20,7 +20,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.jsm",
-  DeferredSave: "resource://gre/modules/DeferredSave.jsm",
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
+  DeferredTask: "resource://gre/modules/DeferredTask.jsm",
   E10SUtils: "resource:///modules/E10SUtils.jsm",
   MessageChannel: "resource://gre/modules/MessageChannel.jsm",
   OS: "resource://gre/modules/osfile.jsm",
@@ -30,7 +31,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 });
 
 XPCOMUtils.defineLazyServiceGetters(this, {
-  gAddonPolicyService: ["@mozilla.org/addons/policy-service;1", "nsIAddonPolicyService"],
   aomStartup: ["@mozilla.org/addons/addon-manager-startup;1", "amIAddonManagerStartup"],
 });
 
@@ -1211,24 +1211,6 @@ function watchExtensionProxyContextLoad({extension, viewType, browser}, onExtens
 // Used to cache the list of WebExtensionManifest properties defined in the BASE_SCHEMA.
 let gBaseManifestProperties = null;
 
-/**
- * Function to obtain the extension name from a moz-extension URI without exposing GlobalManager.
- *
- * @param {Object} uri The URI for the extension to look up.
- * @returns {string} the name of the extension.
- */
-function extensionNameFromURI(uri) {
-  let id = null;
-  try {
-    id = gAddonPolicyService.extensionURIToAddonId(uri);
-  } catch (ex) {
-    if (ex.name != "NS_ERROR_XPC_BAD_CONVERT_JS") {
-      Cu.reportError("Extension cannot be found in AddonPolicyService.");
-    }
-  }
-  return GlobalManager.getExtension(id).name;
-}
-
 // Manages icon details for toolbar buttons in the |pageAction| and
 // |browserAction| APIs.
 let IconDetails = {
@@ -1418,26 +1400,28 @@ StartupCache = {
 
   file: OS.Path.join(OS.Constants.Path.localProfileDir, "startupCache", "webext.sc.lz4"),
 
-  get saver() {
-    if (!this._saver) {
+  async _saveNow() {
+    let data = new Uint8Array(aomStartup.encodeBlob(this._data));
+    await OS.File.writeAtomic(this.file, data, {tmpPath: `${this.file}.tmp`});
+  },
+
+  async save() {
+    if (!this._saveTask) {
       OS.File.makeDir(OS.Path.dirname(this.file), {
         ignoreExisting: true,
         from: OS.Constants.Path.localProfileDir,
       });
 
-      this._saver = new DeferredSave(this.file,
-                                     () => this.getBlob(),
-                                     {delay: 5000});
+      this._saveTask = new DeferredTask(() => this._saveNow(), 5000);
+
+      AsyncShutdown.profileBeforeChange.addBlocker(
+        "Flush WebExtension StartupCache",
+        async () => {
+          await this._saveTask.finalize();
+          this._saveTask = null;
+        });
     }
-    return this._saver;
-  },
-
-  async save() {
-    return this.saver.saveChanges();
-  },
-
-  getBlob() {
-    return new Uint8Array(aomStartup.encodeBlob(this._data));
+    return this._saveTask.arm();
   },
 
   _data: null,
@@ -1492,8 +1476,6 @@ StartupCache = {
     return this.general.delete([extension.id, extension.version, ...path]);
   },
 };
-
-// void StartupCache.dataPromise;
 
 Services.obs.addObserver(StartupCache, "startupcache-invalidate");
 
@@ -1567,7 +1549,6 @@ for (let name of StartupCache.STORE_NAMES) {
 }
 
 var ExtensionParent = {
-  extensionNameFromURI,
   GlobalManager,
   HiddenExtensionPage,
   IconDetails,

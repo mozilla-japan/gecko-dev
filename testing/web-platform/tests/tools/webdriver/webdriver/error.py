@@ -53,7 +53,7 @@ class InvalidElementCoordinatesException(WebDriverException):
 
 class InvalidElementStateException(WebDriverException):
     http_status = 400
-    status_code = "invalid cookie domain"
+    status_code = "invalid element state"
 
 
 class InvalidSelectorException(WebDriverException):
@@ -107,7 +107,7 @@ class SessionNotCreatedException(WebDriverException):
 
 
 class StaleElementReferenceException(WebDriverException):
-    http_status = 400
+    http_status = 404
     status_code = "stale element reference"
 
 

@@ -574,8 +574,8 @@ class SyncTelemetryImpl {
     log.debug("recording event", eventDetails);
 
     let { object, method, value, extra } = eventDetails;
-    if (extra && AsyncResource.serverTime && !extra.serverTime) {
-      extra.serverTime = String(AsyncResource.serverTime);
+    if (extra && Resource.serverTime && !extra.serverTime) {
+      extra.serverTime = String(Resource.serverTime);
     }
     let category = "sync";
     let ts = Math.floor(tryGetMonotonicTimestamp());
@@ -697,10 +697,6 @@ class SyncTelemetryImpl {
 
     if (error instanceof AuthenticationError) {
       return { name: "autherror", from: error.source };
-    }
-
-    if (error instanceof Ci.mozIStorageError) {
-      return { name: "sqlerror", code: error.result };
     }
 
     let httpCode = error.status ||

@@ -132,6 +132,7 @@ task_description_schema = Schema({
         # the name of the product this build produces
         'product': Any(
             'firefox',
+            'fennec',
             'mobile',
             'static-analysis',
             'devedition',
@@ -142,7 +143,7 @@ task_description_schema = Schema({
         'job-name': basestring,
 
         # Type of gecko v2 index to use
-        'type': Any('generic', 'nightly', 'l10n', 'nightly-with-multi-l10n'),
+        'type': Any('generic', 'nightly', 'l10n', 'nightly-with-multi-l10n', 'release'),
 
         # The rank that the task will receive in the TaskCluster
         # index.  A newly completed task supercedes the currently
@@ -170,6 +171,24 @@ task_description_schema = Schema({
     # See the attributes documentation for details.
     Optional('run-on-projects'): [basestring],
 
+    # The `shipping_phase` attribute, defaulting to None. This specifies the
+    # release promotion phase that this task belongs to.
+    Required('shipping-phase', default=None): Any(
+        None,
+        'promote',
+        'publish',
+        'ship',
+    ),
+
+    # The `shipping_product` attribute, defaulting to None. This specifies the
+    # release promotion product that this task belongs to.
+    Required('shipping-product', default=None): Any(
+        None,
+        'devedition',
+        'fennec',
+        'firefox',
+    ),
+
     # Coalescing provides the facility for tasks to be superseded by the same
     # task in a subsequent commit, if the current task backlog reaches an
     # explicit threshold. Both age and size thresholds need to be met in order
@@ -190,6 +209,13 @@ task_description_schema = Schema({
         # before the coalescing service will return tasks.
         'size': int,
     },
+
+    # The `always-target` attribute will cause the task to be included in the
+    # target_task_graph regardless of filtering. Tasks included in this manner
+    # will be candidates for optimization even when `optimize_target_tasks` is
+    # False, unless the task was also explicitly chosen by the target_tasks
+    # method.
+    Required('always-target', default=False): bool,
 
     # Optimization to perform on this task during the optimization phase.
     # Optimizations are defined in taskcluster/taskgraph/optimize.py.
@@ -404,8 +430,6 @@ task_description_schema = Schema({
             Optional('tuxedo_server_url'): optionally_keyed_by('project', basestring),
             Extra: taskref_or_string,  # additional properties are allowed
         },
-        Optional('scopes'): [basestring],
-        Optional('routes'): [basestring],
     }, {
         Required('implementation'): 'native-engine',
         Required('os'): Any('macosx', 'linux'),
@@ -534,60 +558,6 @@ task_description_schema = Schema({
 TC_TREEHERDER_SCHEMA_URL = 'https://github.com/taskcluster/taskcluster-treeherder/' \
                            'blob/master/schemas/task-treeherder-config.yml'
 
-GROUP_NAMES = {
-    'cram': 'Cram tests',
-    'mocha': 'Mocha unit tests',
-    'py': 'Python unit tests',
-    'tc': 'Executed by TaskCluster',
-    'tc-A': 'Android Gradle tests executed by TaskCluster',
-    'tc-e10s': 'Executed by TaskCluster with e10s',
-    'tc-Fxfn-l': 'Firefox functional tests (local) executed by TaskCluster',
-    'tc-Fxfn-l-e10s': 'Firefox functional tests (local) executed by TaskCluster with e10s',
-    'tc-Fxfn-r': 'Firefox functional tests (remote) executed by TaskCluster',
-    'tc-Fxfn-r-e10s': 'Firefox functional tests (remote) executed by TaskCluster with e10s',
-    'tc-M': 'Mochitests executed by TaskCluster',
-    'tc-M-e10s': 'Mochitests executed by TaskCluster with e10s',
-    'tc-M-V': 'Mochitests on Valgrind executed by TaskCluster',
-    'tc-R': 'Reftests executed by TaskCluster',
-    'tc-R-e10s': 'Reftests executed by TaskCluster with e10s',
-    'tc-T': 'Talos performance tests executed by TaskCluster',
-    'tc-Tsd': 'Talos performance tests executed by TaskCluster with Stylo disabled',
-    'tc-Tss': 'Talos performance tests executed by TaskCluster with Stylo sequential',
-    'tc-T-e10s': 'Talos performance tests executed by TaskCluster with e10s',
-    'tc-Tsd-e10s': 'Talos performance tests executed by TaskCluster with e10s, Stylo disabled',
-    'tc-Tss-e10s': 'Talos performance tests executed by TaskCluster with e10s, Stylo sequential',
-    'tc-tt-c': 'Telemetry client marionette tests',
-    'tc-tt-c-e10s': 'Telemetry client marionette tests with e10s',
-    'tc-SY-e10s': 'Are we slim yet tests by TaskCluster with e10s',
-    'tc-SYsd-e10s': 'Are we slim yet tests by TaskCluster with e10s, Stylo disabled',
-    'tc-SYss-e10s': 'Are we slim yet tests by TaskCluster with e10s, Stylo sequential',
-    'tc-VP': 'VideoPuppeteer tests executed by TaskCluster',
-    'tc-W': 'Web platform tests executed by TaskCluster',
-    'tc-W-e10s': 'Web platform tests executed by TaskCluster with e10s',
-    'tc-X': 'Xpcshell tests executed by TaskCluster',
-    'tc-X-e10s': 'Xpcshell tests executed by TaskCluster with e10s',
-    'tc-L10n': 'Localised Repacks executed by Taskcluster',
-    'tc-L10n-Rpk': 'Localized Repackaged Repacks executed by Taskcluster',
-    'tc-BM-L10n': 'Beetmover for locales executed by Taskcluster',
-    'tc-BMR-L10n': 'Beetmover repackages for locales executed by Taskcluster',
-    'c-Up': 'Balrog submission of complete updates',
-    'tc-cs': 'Checksum signing executed by Taskcluster',
-    'tc-rs': 'Repackage signing executed by Taskcluster',
-    'tc-BMcs': 'Beetmover checksums, executed by Taskcluster',
-    'Aries': 'Aries Device Image',
-    'Nexus 5-L': 'Nexus 5-L Device Image',
-    'I': 'Docker Image Builds',
-    'TL': 'Toolchain builds for Linux 64-bits',
-    'TM': 'Toolchain builds for OSX',
-    'TMW': 'Toolchain builds for Windows MinGW',
-    'TW32': 'Toolchain builds for Windows 32-bits',
-    'TW64': 'Toolchain builds for Windows 64-bits',
-    'SM-tc': 'Spidermonkey builds',
-    'pub': 'APK publishing',
-    'p': 'Partial generation',
-    'ps': 'Partials signing',
-    'Rel': 'Release promotion',
-}
 
 UNKNOWN_GROUP_NAME = "Treeherder group {} has no name; add it to " + __file__
 
@@ -710,6 +680,12 @@ def superseder_url(config, task):
         size=size,
         key=key
     )
+
+
+def verify_index_job_name(index):
+    job_name = index['job-name']
+    if job_name not in JOB_NAME_WHITELIST:
+        raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name))
 
 
 @payload_builder('docker-worker')
@@ -1050,13 +1026,23 @@ def build_buildbot_bridge_payload(config, task, task_def):
     task['extra'].pop('treeherder', None)
     task['extra'].pop('treeherderEnv', None)
     worker = task['worker']
+
+    if worker['properties'].get('tuxedo_server_url'):
+        resolve_keyed_by(
+            worker, 'properties.tuxedo_server_url', worker['buildername'],
+            **config.params
+        )
+
     task_def['payload'] = {
         'buildername': worker['buildername'],
         'sourcestamp': worker['sourcestamp'],
         'properties': worker['properties'],
     }
-    task_def['scopes'].extend(worker.get('scopes', []))
-    task_def['routes'].extend(worker.get('routes', []))
+    task_def.setdefault('scopes', [])
+    if worker['properties'].get('release_promotion'):
+        task_def['scopes'].append(
+            "project:releng:buildbot-bridge:builder-name:{}".format(worker['buildername'])
+        )
 
 
 transforms = TransformSequence()
@@ -1087,12 +1073,10 @@ def add_generic_index_routes(config, task):
     index = task.get('index')
     routes = task.setdefault('routes', [])
 
-    job_name = index['job-name']
-    if job_name not in JOB_NAME_WHITELIST:
-        raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name))
+    verify_index_job_name(index)
 
     subs = config.params.copy()
-    subs['job-name'] = job_name
+    subs['job-name'] = index['job-name']
     subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
                                             time.gmtime(config.params['build_date']))
     subs['product'] = index['product']
@@ -1116,12 +1100,10 @@ def add_nightly_index_routes(config, task):
     index = task.get('index')
     routes = task.setdefault('routes', [])
 
-    job_name = index['job-name']
-    if job_name not in JOB_NAME_WHITELIST:
-        raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name))
+    verify_index_job_name(index)
 
     subs = config.params.copy()
-    subs['job-name'] = job_name
+    subs['job-name'] = index['job-name']
     subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
                                             time.gmtime(config.params['build_date']))
     subs['build_date'] = time.strftime("%Y.%m.%d",
@@ -1133,6 +1115,29 @@ def add_nightly_index_routes(config, task):
 
     # Also add routes for en-US
     task = add_l10n_index_routes(config, task, force_locale="en-US")
+
+    return task
+
+
+@index_builder('release')
+def add_release_index_routes(config, task):
+    index = task.get('index')
+    routes = []
+    release_config = get_release_config(config, force=True)
+
+    verify_index_job_name(index)
+
+    subs = config.params.copy()
+    subs['build_number'] = str(release_config['build_number'])
+    subs['revision'] = subs['head_rev']
+    subs['underscore_version'] = release_config['version'].replace('.', '_')
+    subs['product'] = index['product']
+    subs['branch'] = subs['project']
+
+    for rt in task.get('routes', []):
+        routes.append(rt.format(**subs))
+
+    task['routes'] = routes
 
     return task
 
@@ -1149,12 +1154,10 @@ def add_l10n_index_routes(config, task, force_locale=None):
     index = task.get('index')
     routes = task.setdefault('routes', [])
 
-    job_name = index['job-name']
-    if job_name not in JOB_NAME_WHITELIST:
-        raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name))
+    verify_index_job_name(index)
 
     subs = config.params.copy()
-    subs['job-name'] = job_name
+    subs['job-name'] = index['job-name']
     subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
                                             time.gmtime(config.params['build_date']))
     subs['product'] = index['product']
@@ -1237,12 +1240,13 @@ def build_task(config, tasks):
             treeherder['machine'] = {'platform': machine_platform}
             treeherder['collection'] = {collection: True}
 
+            group_names = config.graph_config['treeherder']['group-names']
             groupSymbol, symbol = split_symbol(task_th['symbol'])
             if groupSymbol != '?':
                 treeherder['groupSymbol'] = groupSymbol
-                if groupSymbol not in GROUP_NAMES:
+                if groupSymbol not in group_names:
                     raise Exception(UNKNOWN_GROUP_NAME.format(groupSymbol))
-                treeherder['groupName'] = GROUP_NAMES[groupSymbol]
+                treeherder['groupName'] = group_names[groupSymbol]
             treeherder['symbol'] = symbol
             if len(symbol) > 25 or len(groupSymbol) > 25:
                 raise RuntimeError("Treeherder group and symbol names must not be longer than "
@@ -1322,6 +1326,9 @@ def build_task(config, tasks):
 
         attributes = task.get('attributes', {})
         attributes['run_on_projects'] = task.get('run-on-projects', ['all'])
+        attributes['always_target'] = task['always-target']
+        attributes['shipping_phase'] = task['shipping-phase']
+        attributes['shipping_product'] = task['shipping-product']
 
         # Set MOZ_AUTOMATION on all jobs.
         if task['worker']['implementation'] in (

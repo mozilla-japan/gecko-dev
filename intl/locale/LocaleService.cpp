@@ -24,14 +24,9 @@
 #define MATCH_OS_LOCALE_PREF "intl.locale.matchOS"
 #define SELECTED_LOCALE_PREF "general.useragent.locale"
 
-//XXX: This pref is used only by Android and we use it to emulate
-//     retrieving OS locale until we get proper hook into JNI in bug 1337078.
-#define ANDROID_OS_LOCALE_PREF "intl.locale.os"
-
 static const char* kObservedPrefs[] = {
   MATCH_OS_LOCALE_PREF,
   SELECTED_LOCALE_PREF,
-  ANDROID_OS_LOCALE_PREF,
   nullptr
 };
 
@@ -95,6 +90,16 @@ ReadRequestedLocales(nsTArray<nsCString>& aRetVal)
   // At the moment we just take a single locale, but in the future
   // we'll want to allow user to specify a list of requested locales.
   aRetVal.AppendElement(locale);
+
+  // en-US is a LastResort locale. LastResort locale is a fallback locale
+  // for the requested locale chain. In the future we'll want to make the
+  // fallback chain differ per-locale. For now, it'll always fallback on en-US.
+  //
+  // Notice: This is not the same as DefaultLocale,
+  // which follows the default locale the build is in.
+  if (!locale.Equals("en-US")) {
+    aRetVal.AppendElement("en-US");
+  }
   return true;
 }
 
@@ -293,15 +298,6 @@ LocaleService::GetRequestedLocales(nsTArray<nsCString>& aRetVal)
   if (mRequestedLocales.IsEmpty()) {
     ReadRequestedLocales(mRequestedLocales);
 
-    // en-US is a LastResort locale. LastResort locale is a fallback locale
-    // for the requested locale chain. In the future we'll want to make the
-    // fallback chain differ per-locale. For now, it'll always fallback on en-US.
-    //
-    // Notice: This is not the same as DefaultLocale,
-    // which follows the default locale the build is in.
-    if (!mRequestedLocales.Contains("en-US")) {
-      mRequestedLocales.AppendElement("en-US");
-    }
   }
 
   aRetVal = mRequestedLocales;
@@ -574,16 +570,10 @@ LocaleService::Observe(nsISupports *aSubject, const char *aTopic,
     RequestedLocalesChanged();
   } else {
     NS_ConvertUTF16toUTF8 pref(aData);
-
-    // This is a temporary solution until we get bug 1337078 landed.
-    if (pref.EqualsLiteral(ANDROID_OS_LOCALE_PREF)) {
-      OSPreferences::GetInstance()->Refresh();
-    }
     // At the moment the only thing we're observing are settings indicating
     // user requested locales.
     if (pref.EqualsLiteral(MATCH_OS_LOCALE_PREF) ||
-        pref.EqualsLiteral(SELECTED_LOCALE_PREF) ||
-        pref.EqualsLiteral(ANDROID_OS_LOCALE_PREF)) {
+        pref.EqualsLiteral(SELECTED_LOCALE_PREF)) {
       RequestedLocalesChanged();
     }
   }

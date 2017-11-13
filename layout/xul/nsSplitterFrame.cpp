@@ -211,7 +211,7 @@ nsSplitterFrame::nsSplitterFrame(nsStyleContext* aContext)
 }
 
 void
-nsSplitterFrame::DestroyFrom(nsIFrame* aDestructRoot)
+nsSplitterFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
 {
   if (mInner) {
     mInner->RemoveListener();
@@ -219,7 +219,7 @@ nsSplitterFrame::DestroyFrom(nsIFrame* aDestructRoot)
     mInner->Release();
     mInner = nullptr;
   }
-  nsBoxFrame::DestroyFrom(aDestructRoot);
+  nsBoxFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 
@@ -589,7 +589,7 @@ nsSplitterFrameInner::HandleEvent(nsIDOMEvent* aEvent)
       eventType.EqualsLiteral("mouseout"))
     return MouseMove(aEvent);
 
-  NS_ABORT();
+  MOZ_ASSERT_UNREACHABLE("Unexpected eventType");
   return NS_OK;
 }
 

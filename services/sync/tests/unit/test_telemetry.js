@@ -164,11 +164,11 @@ add_task(async function test_uploading() {
   let server = await serverForFoo(engine);
   await SyncTestingInfrastructure(server);
 
-  let parent = PlacesUtils.toolbarFolderId;
-  let uri = CommonUtils.makeURI("http://getfirefox.com/");
-
-  let bmk_id = PlacesUtils.bookmarks.insertBookmark(parent, uri,
-    PlacesUtils.bookmarks.DEFAULT_INDEX, "Get Firefox!");
+  let bmk = await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    url: "http://getfirefox.com/",
+    title: "Get Firefox!",
+  });
 
   try {
     let ping = await sync_engine_and_validate_telem(engine, false);
@@ -179,7 +179,10 @@ add_task(async function test_uploading() {
     greater(ping.engines[0].outgoing[0].sent, 0);
     ok(!ping.engines[0].incoming);
 
-    PlacesUtils.bookmarks.setItemTitle(bmk_id, "New Title");
+    await PlacesUtils.bookmarks.update({
+      guid: bmk.guid,
+      title: "New Title",
+    });
 
     await engine.resetClient();
 
@@ -588,31 +591,6 @@ add_task(async function test_no_foreign_engines_in_error_ping() {
   }
 });
 
-add_task(async function test_sql_error() {
-  enableValidationPrefs();
-
-  await Service.engineManager.register(SteamEngine);
-  let engine = Service.engineManager.get("steam");
-  engine.enabled = true;
-  let server = await serverForFoo(engine);
-  await SyncTestingInfrastructure(server);
-  engine._sync = function() {
-    // Just grab a DB connection and issue a bogus SQL statement synchronously.
-    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
-    Async.querySpinningly(db.createAsyncStatement("select bar from foo"));
-  };
-  try {
-    _(`test_sql_error: Steam tracker contents: ${
-      JSON.stringify(engine._tracker.changedIDs)}`);
-    let ping = await sync_and_validate_telem(true);
-    let enginePing = ping.engines.find(e => e.name === "steam");
-    deepEqual(enginePing.failureReason, { name: "sqlerror", code: 1 });
-  } finally {
-    await cleanAndGo(engine, server);
-    Service.engineManager.unregister(engine);
-  }
-});
-
 add_task(async function test_no_foreign_engines_in_success_ping() {
   enableValidationPrefs();
 
@@ -641,7 +619,7 @@ add_task(async function test_events() {
 
   await SyncTestingInfrastructure(server);
   try {
-    let serverTime = AsyncResource.serverTime;
+    let serverTime = Resource.serverTime;
     Service.recordTelemetryEvent("object", "method", "value", { foo: "bar" });
     let ping = await wait_for_ping(() => Service.sync(), true, true);
     equal(ping.events.length, 1);

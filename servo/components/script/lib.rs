@@ -4,11 +4,14 @@
 
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
+#![feature(ascii_ctype)]
 #![feature(conservative_impl_trait)]
 #![feature(const_fn)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(proc_macro)]
+#![feature(splice)]
+#![feature(string_retain)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -16,6 +19,7 @@
 #![doc = "The script crate contains all matters DOM."]
 
 #![plugin(script_plugins)]
+#![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 
 extern crate angle;
 extern crate app_units;
@@ -46,8 +50,6 @@ extern crate hyper_serde;
 extern crate image;
 extern crate ipc_channel;
 #[macro_use]
-extern crate js;
-#[macro_use]
 extern crate jstraceable_derive;
 #[macro_use]
 extern crate lazy_static;
@@ -61,6 +63,8 @@ extern crate metrics;
 extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;
+#[macro_use]
+extern crate mozjs as js;
 extern crate msg;
 extern crate net_traits;
 extern crate nonzero;

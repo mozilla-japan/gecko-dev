@@ -144,12 +144,6 @@ static const struct wl_registry_listener registry_listener = {
   global_registry_remover
 };
 
-wl_event_queue*
-nsWaylandDisplay::GetEventQueue()
-{
-  return mEventQueue;
-}
-
 wl_shm*
 nsWaylandDisplay::GetShm()
 {
@@ -187,14 +181,6 @@ nsWaylandDisplay::Matches(wl_display *aDisplay)
 {
   return mThreadId == PR_GetCurrentThread() && aDisplay == mDisplay;
 }
-
-#ifdef DEBUG
-bool
-nsWaylandDisplay::MatchesThread()
-{
-  return mThreadId == PR_GetCurrentThread();
-}
-#endif
 
 NS_IMPL_ISUPPORTS(nsWaylandDisplay, nsISupports);
 

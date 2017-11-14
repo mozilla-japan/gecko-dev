@@ -23,6 +23,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   setTimeout: "resource://gre/modules/Timer.jsm",
   clearTimeout: "resource://gre/modules/Timer.jsm",
   Lz4: "resource://gre/modules/lz4.js",
+  NetUtil: "resource://gre/modules/NetUtil.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetters(this, {
@@ -31,6 +32,13 @@ XPCOMUtils.defineLazyServiceGetters(this, {
   gChromeReg: ["@mozilla.org/chrome/chrome-registry;1", "nsIChromeRegistry"],
 });
 
+const ArrayBufferInputStream = Components.Constructor(
+  "@mozilla.org/io/arraybuffer-input-stream;1",
+  "nsIArrayBufferInputStream", "setData");
+const BinaryInputStream = Components.Constructor(
+  "@mozilla.org/binaryinputstream;1",
+  "nsIBinaryInputStream", "setInputStream");
+
 Cu.importGlobalProperties(["XMLHttpRequest"]);
 
 // A text encoder to UTF8, used whenever we commit the cache to disk.
@@ -38,6 +46,7 @@ XPCOMUtils.defineLazyGetter(this, "gEncoder",
                             function() {
                               return new TextEncoder();
                             });
+
 
 const MODE_RDONLY   = 0x01;
 const MODE_WRONLY   = 0x02;
@@ -60,6 +69,7 @@ const APP_SEARCH_PREFIX = "resource://search-plugins/";
 
 // See documentation in nsIBrowserSearchService.idl.
 const SEARCH_ENGINE_TOPIC        = "browser-search-engine-modified";
+const REQ_LOCALES_CHANGED_TOPIC  = "intl:requested-locales-changed";
 const QUIT_APPLICATION_TOPIC     = "quit-application";
 
 const SEARCH_ENGINE_REMOVED      = "engine-removed";
@@ -98,7 +108,7 @@ const NEW_LINES = /(\r\n|\r|\n)/;
 
 // Set an arbitrary cap on the maximum icon size. Without this, large icons can
 // cause big delays when loading them at startup.
-const MAX_ICON_SIZE   = 10000;
+const MAX_ICON_SIZE   = 20000;
 
 // Default charset to use for sending search parameters. ISO-8859-1 is used to
 // match previous nsInternetSearchService behavior as a URL parameter. Label
@@ -130,7 +140,6 @@ const URLTYPE_SEARCH_HTML  = "text/html";
 const URLTYPE_OPENSEARCH   = "application/opensearchdescription+xml";
 
 const BROWSER_SEARCH_PREF = "browser.search.";
-const LOCALE_PREF = "general.useragent.locale";
 
 const USER_DEFINED = "searchTerms";
 
@@ -306,11 +315,11 @@ loadListener.prototype = {
     if (requestFailed || this._countRead == 0) {
       LOG("loadListener: request failed!");
       // send null so the callback can deal with the failure
-      this._callback(null, this._engine);
-    } else
-      this._callback(this._bytes, this._engine);
+      this._bytes = null;
+    }
+    this._callback(this._bytes, this._engine);
     this._channel = null;
-    this._engine  = null;
+    this._engine = null;
   },
 
   // nsIStreamListener
@@ -340,6 +349,29 @@ loadListener.prototype = {
   onProgress(aRequest, aContext, aProgress, aProgressMax) {},
   onStatus(aRequest, aContext, aStatus, aStatusArg) {}
 };
+
+/**
+ * Tries to rescale an icon to a given size.
+ *
+ * @param aByteArray Byte array containing the icon payload.
+ * @param aContentType Mime type of the payload.
+ * @param [optional] aSize desired icon size.
+ * @throws if the icon cannot be rescaled or the rescaled icon is too big.
+ */
+function rescaleIcon(aByteArray, aContentType, aSize = 32) {
+  if (aContentType == "image/svg+xml")
+    throw new Error("Cannot rescale SVG image");
+  let buffer = Uint8Array.from(aByteArray).buffer;
+  let imgTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
+  let input = new ArrayBufferInputStream(buffer, 0, buffer.byteLength);
+  let container = imgTools.decodeImage(input, aContentType);
+  let stream = imgTools.encodeScaledImage(container, "image/png", aSize, aSize);
+  let size = stream.available();
+  if (size > MAX_ICON_SIZE)
+    throw new Error("Icon is too big");
+  let bis = new BinaryInputStream(stream);
+  return [bis.readByteArray(size), "image/png"];
+}
 
 function isPartnerBuild() {
   try {
@@ -923,9 +955,8 @@ function notifyAction(aEngine, aVerb) {
 }
 
 function parseJsonFromStream(aInputStream) {
-  const json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-  const data = json.decodeFromStream(aInputStream, aInputStream.available());
-  return data;
+  let bytes = NetUtil.readInputStream(aInputStream, aInputStream.available());
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
 /**
@@ -1740,15 +1771,26 @@ Engine.prototype = {
           if (aEngine._hasPreferredIcon && !aIsPreferred)
             return;
 
-          if (!aByteArray || aByteArray.length > MAX_ICON_SIZE) {
-            LOG("iconLoadCallback: load failed, or the icon was too large!");
+          if (!aByteArray) {
+            LOG("iconLoadCallback: load failed");
             return;
           }
 
-          let type = chan.contentType;
-          if (!type.startsWith("image/"))
-            type = "image/x-icon";
-          let dataURL = "data:" + type + ";base64," +
+          let contentType = chan.contentType;
+          if (aByteArray.length > MAX_ICON_SIZE) {
+            try {
+              LOG("iconLoadCallback: rescaling icon");
+              [aByteArray, contentType] = rescaleIcon(aByteArray, contentType);
+            } catch (ex) {
+              LOG("iconLoadCallback: got exception: " + ex);
+              Cu.reportError("Unable to set an icon for the search engine because: " + ex);
+              return;
+            }
+          }
+
+          if (!contentType.startsWith("image/"))
+            contentType = "image/x-icon";
+          let dataURL = "data:" + contentType + ";base64," +
             btoa(String.fromCharCode.apply(null, aByteArray));
 
           aEngine._iconURI = makeURI(dataURL);
@@ -2249,7 +2291,7 @@ Engine.prototype = {
     // we'll accept as a 'default' engine anything that has been registered at
     // resource://search-plugins/ even if the file doesn't come from the
     // application folder.  If not, skip costly additional checks.
-    if (!Services.prefs.prefHasUserValue(LOCALE_PREF) &&
+    if (Services.locale.defaultLocale !== Services.locale.getRequestedLocale() &&
         !gEnvironment.get("XPCSHELL_TEST_PROFILE_DIR"))
       return false;
 
@@ -2334,8 +2376,7 @@ Engine.prototype = {
   get _defaultMobileResponseType() {
     let type = URLTYPE_SEARCH_HTML;
 
-    let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-    let isTablet = sysInfo.get("tablet");
+    let isTablet = Services.sysinfo.get("tablet");
     if (isTablet && this.supportsResponseType("application/x-moz-tabletsearch")) {
       // Check for a tablet-specific search URL override
       type = "application/x-moz-tabletsearch";
@@ -4625,13 +4666,11 @@ SearchService.prototype = {
         this._removeObservers();
         break;
 
-      case "nsPref:changed":
-        if (aVerb == LOCALE_PREF) {
-          // Locale changed. Re-init. We rely on observers, because we can't
-          // return this promise to anyone.
-          this._asyncReInit();
-          break;
-        }
+      case REQ_LOCALES_CHANGED_TOPIC:
+        // Locale changed. Re-init. We rely on observers, because we can't
+        // return this promise to anyone.
+        this._asyncReInit();
+        break;
     }
   },
 
@@ -4686,7 +4725,7 @@ SearchService.prototype = {
     Services.obs.addObserver(this, QUIT_APPLICATION_TOPIC);
 
     if (AppConstants.MOZ_BUILD_APP == "mobile/android") {
-      Services.prefs.addObserver(LOCALE_PREF, this);
+      Services.obs.addObserver(this, REQ_LOCALES_CHANGED_TOPIC);
     }
 
     // The current stage of shutdown. Used to help analyze crash
@@ -4731,7 +4770,7 @@ SearchService.prototype = {
     Services.obs.removeObserver(this, QUIT_APPLICATION_TOPIC);
 
     if (AppConstants.MOZ_BUILD_APP == "mobile/android") {
-      Services.prefs.removeObserver(LOCALE_PREF, this);
+      Services.obs.removeObserver(this, REQ_LOCALES_CHANGED_TOPIC);
     }
   },
 

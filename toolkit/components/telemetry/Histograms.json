@@ -1919,6 +1919,8 @@
   "HTTP_PAGE_DNS_LOOKUP_TIME": {
     "record_in_processes": ["main", "content"],
     "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["necko@mozilla.com", "pmcmanus@mozilla.com"],
     "kind": "exponential",
     "high": 30000,
     "n_buckets": 50,
@@ -2030,6 +2032,8 @@
     "kind": "exponential",
     "high": 30000,
     "n_buckets": 50,
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["necko@mozilla.com", "pmcmanus@mozilla.com"],
     "description": "HTTP subitem channel: DNS lookup time (ms)"
   },
   "HTTP_SUB_TLS_HANDSHAKE": {
@@ -2790,12 +2794,13 @@
   },
   "SPDY_CONTINUED_HEADERS": {
     "record_in_processes": ["main", "content"],
-    "expires_in_version": "59",
-    "alert_emails": ["necko@mozilla.com"],
+    "expires_in_version": "never",
+    "alert_emails": ["necko@mozilla.com", "pmcmanus@mozilla.com"],
     "bug_numbers": [1324855],
     "kind": "exponential",
     "high": 32000000,
     "n_buckets": 75,
+    "releaseChannelCollection": "opt-out",
     "description": "Size of continued H2 headers in bytes."
   },
   "HPACK_ELEMENTS_EVICTED_DECOMPRESSOR": {
@@ -3642,6 +3647,8 @@
     "expires_in_version": "never",
     "kind": "enumerated",
     "n_values": 16,
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["necko@mozilla.com", "pmcmanus@mozilla.com"],
     "description": "DNS Lookup Type (hit, renewal, negative-hit, literal, overflow, network-first, network-shared)"
   },
   "DNS_CLEANUP_AGE": {
@@ -3657,6 +3664,8 @@
     "expires_in_version": "never",
     "kind": "exponential",
     "high": 60000,
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["necko@mozilla.com", "pmcmanus@mozilla.com"],
     "n_buckets": 50,
     "description": "Time for a successful DNS OS resolution (msec)"
   },
@@ -3681,12 +3690,16 @@
     "expires_in_version": "never",
     "kind": "exponential",
     "high": 60000,
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["necko@mozilla.com", "pmcmanus@mozilla.com"],
     "n_buckets": 50,
     "description": "Time for an unsuccessful DNS OS resolution (msec)"
   },
   "DNS_BLACKLIST_COUNT": {
     "record_in_processes": ["main", "content"],
     "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["necko@mozilla.com", "pmcmanus@mozilla.com"],
     "kind": "linear",
     "high": 21,
     "n_buckets": 20,
@@ -4412,6 +4425,15 @@
     "high": 3000,
     "n_buckets": 10,
     "description": "Time spent on SQLite read() (ms) *** No longer needed (bug 1156565). Delete histogram and accumulation code! ***"
+  },
+  "MOZ_SQLITE_COOKIES_OLD_SCHEMA": {
+    "record_in_processes": ["main"],
+    "expires_in_version": "62",
+    "kind": "enumerated",
+    "n_values": 10,
+    "bug_numbers": [1412218],
+    "alert_emails": ["necko@mozilla.com", "junior@mozilla.com"],
+    "description": "Old schema version of the cookie database. 0 for having legacy cookies.txt."
   },
   "MOZ_SQLITE_COOKIES_BLOCK_MAIN_THREAD_MS": {
     "record_in_processes": ["main"],
@@ -6579,6 +6601,16 @@
                "sendToDevice", "other"],
     "description": "Count how many times people remove items from the url bar"
   },
+  "FX_PAGE_ACTION_MANAGED": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["gijs@mozilla.com"],
+    "bug_numbers": [1393843],
+    "expires_in_version": "60",
+    "kind": "categorical",
+    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
+               "sendToDevice", "other"],
+    "description": "Count how many times people manage extensions via their actions in the url bar"
+  },
   "FX_PAGE_ACTION_URLBAR_USED": {
     "record_in_processes": ["main"],
     "alert_emails": ["gijs@mozilla.com"],
@@ -8482,6 +8514,24 @@
     "n_buckets": 1000,
     "description": "The time (in milliseconds) that it took to display a selected source to the user."
   },
+  "DEVTOOLS_ABOUT_DEVTOOLS_OPENED_KEY": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["dev-developer-tools@lists.mozilla.org", "hkirschner@mozilla.com"],
+    "bug_numbers": [1412029],
+    "expires_in_version": "60",
+    "kind": "categorical",
+    "labels": ["toggleToolbox", "toggleToolboxF12", "inspector", "webconsole", "jsdebugger", "netmonitor", "toggleToolbar", "webide", "browserToolbox", "browserConsole", "responsiveDesignMode", "scratchpad", "styleeditor", "performance", "storage", "dom"],
+    "description": "Records the key shortcut passed to open the about:devtools page."
+  },
+  "DEVTOOLS_ABOUT_DEVTOOLS_OPENED_REASON": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["dev-developer-tools@lists.mozilla.org", "hkirschner@mozilla.com"],
+    "bug_numbers": [1412029],
+    "expires_in_version": "60",
+    "kind": "categorical",
+    "labels": ["KeyShortcut", "SystemMenu", "HamburgerMenu", "ContextMenu", "CommandLine"],
+    "description": "Records the reason for opening the about:devtools page."
+  },
   "MEDIA_RUST_MP4PARSE_SUCCESS": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["giles@mozilla.com", "kinetik@flim.org"],
@@ -8545,15 +8595,6 @@
     "kind": "boolean",
     "description": "Reports whether a decoder for an HTTP Live Streaming media type was created when requested.",
     "bug_numbers": [1262659]
-  },
-  "MEDIA_DECODING_PROCESS_CRASH": {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["bwu@mozilla.com", "jolin@mozilla.com", "jacheng@mozilla.com"],
-    "expires_in_version": "57",
-    "kind": "count",
-    "bug_numbers": [1297556, 1257777],
-    "description": "Records a value each time Fennec remote decoding process crashes unexpected while decoding media content.",
-    "releaseChannelCollection": "opt-out"
   },
   "MEDIA_ANDROID_VIDEO_TUNNELING_SUPPORT": {
     "record_in_processes": ["main", "content"],
@@ -11472,12 +11513,6 @@
     "n_buckets": 16,
     "description": "The number of entries in persistent DataStorage (HSTS and HPKP data, basically)"
   },
-  "VIDEO_EME_PLAY_SUCCESS": {
-    "record_in_processes": ["main", "content"],
-    "expires_in_version": "45",
-    "kind": "boolean",
-    "description": "EME video playback success or failure"
-  },
   "VIDEO_PLAY_TIME_MS" : {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["ajones@mozilla.com"],
@@ -13016,15 +13051,6 @@
     "keyed": true,
     "n_values": 6,
     "description": "Number of revoke actions on permissions in the control center, keyed by permission id. Values represent the permission type that was revoked. (0=unknown, 1=permanently allowed, 2=permanently blocked, 3=temporarily allowed, 4=temporarily blocked)"
-  },
-  "JS_AOT_USAGE": {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["luke@mozilla.com", "bbouvier@mozilla.com"],
-    "bug_numbers": [1288778],
-    "expires_in_version": "60",
-    "kind": "enumerated",
-    "n_values": 4,
-    "description": "Counts the number of asm.js vs WebAssembly modules instanciations, at the time modules are getting instanciated."
   },
   "TIME_TO_FIRST_CLICK_MS": {
     "record_in_processes": ["main", "content"],

@@ -7,7 +7,7 @@ use std::os::raw::{c_void, c_char, c_float};
 use gleam::gl;
 
 use webrender_api::*;
-use webrender::{ReadPixelsFormat, Renderer, RendererOptions};
+use webrender::{ReadPixelsFormat, Renderer, RendererOptions, ThreadListener};
 use webrender::{ExternalImage, ExternalImageHandler, ExternalImageSource};
 use webrender::DebugFlags;
 use webrender::{ApiRecordingReceiver, BinaryRecorder};
@@ -17,6 +17,14 @@ use app_units::Au;
 use rayon;
 use euclid::SideOffsets2D;
 use log::{set_logger, shutdown_logger, LogLevelFilter, Log, LogLevel, LogMetadata, LogRecord};
+
+#[cfg(target_os = "windows")]
+use dwrote::{FontDescriptor, FontWeight, FontStretch, FontStyle};
+
+#[cfg(target_os = "macos")]
+use core_foundation::string::CFString;
+#[cfg(target_os = "macos")]
+use core_graphics::font::CGFont;
 
 extern crate webrender_api;
 
@@ -579,14 +587,48 @@ pub unsafe extern "C" fn wr_rendered_epochs_delete(pipeline_epochs: *mut WrRende
     Box::from_raw(pipeline_epochs);
 }
 
+extern "C" {
+    fn gecko_profiler_register_thread(name: *const ::std::os::raw::c_char);
+    fn gecko_profiler_unregister_thread();
+}
+
+struct GeckoProfilerThreadListener {}
+
+impl GeckoProfilerThreadListener {
+    pub fn new() -> GeckoProfilerThreadListener {
+        GeckoProfilerThreadListener{}
+    }
+}
+
+impl ThreadListener for GeckoProfilerThreadListener {
+    fn thread_started(&self, thread_name: &str) {
+        let name = CString::new(thread_name).unwrap();
+        unsafe {
+            // gecko_profiler_register_thread copies the passed name here.
+            gecko_profiler_register_thread(name.as_ptr());
+        }
+    }
+
+    fn thread_stopped(&self, _: &str) {
+        unsafe {
+            gecko_profiler_unregister_thread();
+        }
+    }
+}
+
 pub struct WrThreadPool(Arc<rayon::ThreadPool>);
 
 #[no_mangle]
 pub unsafe extern "C" fn wr_thread_pool_new() -> *mut WrThreadPool {
     let worker_config = rayon::Configuration::new()
-        .thread_name(|idx|{ format!("WebRender:Worker#{}", idx) })
+        .thread_name(|idx|{ format!("WRWorker#{}", idx) })
         .start_handler(|idx| {
-            register_thread_with_profiler(format!("WebRender:Worker#{}", idx));
+            let name = format!("WRWorker#{}", idx);
+            register_thread_with_profiler(name.clone());
+            gecko_profiler_register_thread(CString::new(name).unwrap().as_ptr());
+        })
+        .exit_handler(|_idx| {
+            gecko_profiler_unregister_thread();
         });
 
     let workers = Arc::new(rayon::ThreadPool::new(worker_config).unwrap());
@@ -642,6 +684,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         recorder: recorder,
         blob_image_renderer: Some(Box::new(Moz2dImageRenderer::new(workers.clone()))),
         workers: Some(workers.clone()),
+        thread_listener: Some(Box::new(GeckoProfilerThreadListener::new())),
         enable_render_on_scroll: false,
         resource_override_path: unsafe {
             let override_charptr = gfx_wr_resource_path_override();
@@ -654,6 +697,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
                 }
             }
         },
+        renderer_id: Some(window_id.0),
         ..Default::default()
     };
 
@@ -982,6 +1026,54 @@ pub extern "C" fn wr_resource_updates_add_raw_font(
     resources.add_raw_font(key, bytes.flush_into_vec(), index);
 }
 
+#[cfg(target_os = "windows")]
+fn read_font_descriptor(
+    bytes: &mut WrVecU8,
+    index: u32
+) -> NativeFontHandle {
+    let wchars = bytes.convert_into_vec::<u16>();
+    FontDescriptor {
+        family_name: String::from_utf16(&wchars).unwrap(),
+        weight: FontWeight::from_u32(index & 0xffff),
+        stretch: FontStretch::from_u32((index >> 16) & 0xff),
+        style: FontStyle::from_u32((index >> 24) & 0xff),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn read_font_descriptor(
+    bytes: &mut WrVecU8,
+    _index: u32
+) -> NativeFontHandle {
+    let chars = bytes.flush_into_vec();
+    let name = String::from_utf8(chars).unwrap();
+    let font = CGFont::from_name(&CFString::new(&*name)).unwrap();
+    NativeFontHandle(font)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn read_font_descriptor(
+    bytes: &mut WrVecU8,
+    index: u32
+) -> NativeFontHandle {
+    let cstr = CString::new(bytes.flush_into_vec()).unwrap();
+    NativeFontHandle {
+        pathname: String::from(cstr.to_str().unwrap()),
+        index,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn wr_resource_updates_add_font_descriptor(
+    resources: &mut ResourceUpdates,
+    key: WrFontKey,
+    bytes: &mut WrVecU8,
+    index: u32
+) {
+    let native_font_handle = read_font_descriptor(bytes, index);
+    resources.add_native_font(key, native_font_handle);
+}
+
 #[no_mangle]
 pub extern "C" fn wr_resource_updates_delete_font(
     resources: &mut ResourceUpdates,
@@ -1275,7 +1367,8 @@ pub extern "C" fn wr_dp_define_sticky_frame(state: &mut WrState,
                                             bottom_margin: *const f32,
                                             left_margin: *const f32,
                                             vertical_bounds: StickyOffsetBounds,
-                                            horizontal_bounds: StickyOffsetBounds)
+                                            horizontal_bounds: StickyOffsetBounds,
+                                            applied_offset: LayoutVector2D)
                                             -> u64 {
     assert!(unsafe { is_in_main_thread() });
     let clip_id = state.frame_builder.dl_builder.define_sticky_frame(
@@ -1285,7 +1378,7 @@ pub extern "C" fn wr_dp_define_sticky_frame(state: &mut WrState,
             unsafe { bottom_margin.as_ref() }.cloned(),
             unsafe { left_margin.as_ref() }.cloned()
         ),
-        vertical_bounds, horizontal_bounds);
+        vertical_bounds, horizontal_bounds, applied_offset);
     match clip_id {
         ClipId::Clip(id, pipeline_id) => {
             assert!(pipeline_id == state.pipeline_id);

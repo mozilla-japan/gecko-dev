@@ -1027,7 +1027,7 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
         op = JSOp(*pc);
     }
 
-    uint32_t pcOff = script->pcToOffset(pc);
+    const uint32_t pcOff = script->pcToOffset(pc);
     BaselineScript* baselineScript = script->baselineScript();
 
 #ifdef DEBUG
@@ -1107,8 +1107,13 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
             ICFallbackStub* fallbackStub = icEntry.firstStub()->getChainFallback();
             MOZ_ASSERT(fallbackStub->isMonitoredFallback());
             JitSpew(JitSpew_BaselineBailouts, "      [TYPE-MONITOR CHAIN]");
-            ICMonitoredFallbackStub* monFallbackStub = fallbackStub->toMonitoredFallbackStub();
-            ICStub* firstMonStub = monFallbackStub->fallbackMonitorStub()->firstMonitorStub();
+
+            ICTypeMonitor_Fallback* typeMonitorFallback =
+                fallbackStub->toMonitoredFallbackStub()->getFallbackMonitorStub(cx, script);
+            if (!typeMonitorFallback)
+                return false;
+
+            ICStub* firstMonStub = typeMonitorFallback->firstMonitorStub();
 
             // To enter a monitoring chain, we load the top stack value into R0
             JitSpew(JitSpew_BaselineBailouts, "      Popping top stack value into R0.");
@@ -1386,6 +1391,14 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
     // Push BaselineStub frame descriptor
     if (!builder.writeWord(baselineStubFrameDescr, "Descriptor"))
         return false;
+
+    // Ensure we have a TypeMonitor fallback stub so we don't crash in JIT code
+    // when we try to enter it. See callers of offsetOfFallbackMonitorStub.
+    if (CodeSpec[*pc].format & JOF_TYPESET) {
+        ICFallbackStub* fallbackStub = icEntry.firstStub()->getChainFallback();
+        if (!fallbackStub->toMonitoredFallbackStub()->getFallbackMonitorStub(cx, script))
+            return false;
+    }
 
     // Push return address into ICCall_Scripted stub, immediately after the call.
     void* baselineCallReturnAddr = GetStubReturnAddress(cx, pc);
@@ -1789,18 +1802,6 @@ HandleLexicalCheckFailure(JSContext* cx, HandleScript outerScript, HandleScript 
         Invalidate(cx, innerScript);
 }
 
-static void
-HandleIterNextNonStringBailout(JSContext* cx, HandleScript outerScript, HandleScript innerScript)
-{
-    JitSpew(JitSpew_IonBailouts, "Non-string iterator value %s:%zu, inlined into %s:%zu",
-            innerScript->filename(), innerScript->lineno(),
-            outerScript->filename(), outerScript->lineno());
-
-    // This should only happen when legacy generators are used.
-    ForbidCompilation(cx, innerScript);
-    InvalidateAfterBailout(cx, outerScript, "non-string iterator value");
-}
-
 static bool
 CopyFromRematerializedFrame(JSContext* cx, JitActivation* act, uint8_t* fp, size_t inlineDepth,
                             BaselineFrame* frame)
@@ -2039,10 +2040,6 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfo)
       case Bailout_DoubleOutput:
       case Bailout_ObjectIdentityOrTypeGuard:
         HandleBaselineInfoBailout(cx, outerScript, innerScript);
-        break;
-
-      case Bailout_IterNextNonString:
-        HandleIterNextNonStringBailout(cx, outerScript, innerScript);
         break;
 
       case Bailout_ArgumentCheck:

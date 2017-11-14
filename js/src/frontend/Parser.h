@@ -172,8 +172,8 @@ class ParserBase : public StrictModeGetter
     TokenPos pos() const { return tokenStream.currentToken().pos; }
 
     // Determine whether |yield| is a valid name in the current context.
-    bool yieldExpressionsSupported() {
-        return pc->isStarGenerator();
+    bool yieldExpressionsSupported() const {
+        return pc->isGenerator();
     }
 
     virtual bool strictMode() { return pc->sc()->strict(); }
@@ -779,15 +779,6 @@ class Parser final : public ParserBase, private JS::AutoGCRooter
     Node unaryOpExpr(YieldHandling yieldHandling, ParseNodeKind kind, uint32_t begin);
 
     Node condition(InHandling inHandling, YieldHandling yieldHandling);
-
-    /* comprehensions */
-    Node generatorComprehensionLambda(unsigned begin);
-    Node comprehensionFor(GeneratorKind comprehensionKind);
-    Node comprehensionIf(GeneratorKind comprehensionKind);
-    Node comprehensionTail(GeneratorKind comprehensionKind);
-    Node comprehension(GeneratorKind comprehensionKind);
-    Node arrayComprehension(uint32_t begin);
-    Node generatorComprehension(uint32_t begin);
 
     bool argumentList(YieldHandling yieldHandling, Node listNode, bool* isSpread,
                       PossibleError* possibleError = nullptr);

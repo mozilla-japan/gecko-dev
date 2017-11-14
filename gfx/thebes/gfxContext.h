@@ -172,12 +172,14 @@ public:
     /**
      * Replaces the current transformation matrix with matrix.
      */
-    void SetMatrix(const gfxMatrix& matrix);
+    void SetMatrix(const mozilla::gfx::Matrix& matrix);
+    void SetMatrixDouble(const gfxMatrix& matrix);
 
     /**
      * Returns the current transformation matrix.
      */
-    gfxMatrix CurrentMatrix() const;
+    mozilla::gfx::Matrix CurrentMatrix() const;
+    gfxMatrix CurrentMatrixDouble() const;
 
     /**
      * Converts a point from device to user coordinates using the inverse
@@ -280,13 +282,6 @@ public:
      * Uses a pattern for drawing.
      */
     void SetPattern(gfxPattern *pattern);
-
-    /**
-     * Set the color that text drawn on top of transparent pixels should be
-     * anti-aliased into.
-     */
-    void SetFontSmoothingBackgroundColor(const mozilla::gfx::Color& aColor);
-    mozilla::gfx::Color GetFontSmoothingBackgroundColor();
 
     /**
      * Get the source pattern (solid color, normal pattern, surface, etc)
@@ -635,7 +630,7 @@ public:
       }
     }
 
-    const gfxMatrix& Matrix()
+    const mozilla::gfx::Matrix& Matrix()
     {
       MOZ_ASSERT(mContext, "mMatrix doesn't contain a useful matrix");
       return mMatrix;
@@ -645,7 +640,7 @@ public:
 
 private:
     gfxContext *mContext;
-    gfxMatrix   mMatrix;
+    mozilla::gfx::Matrix mMatrix;
 };
 
 

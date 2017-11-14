@@ -2943,7 +2943,7 @@ SVGTextDrawPathCallbacks::HandleTextGeometry()
   } else {
     // Normal painting.
     gfxContextMatrixAutoSaveRestore saveMatrix(&mContext);
-    mContext.SetMatrix(mCanvasTM);
+    mContext.SetMatrixDouble(mCanvasTM);
 
     FillAndStrokeGeometry();
   }
@@ -3331,7 +3331,7 @@ SVGTextFrame::ScheduleReflowSVGNonDisplayText(nsIPresShell::IntrinsicDirty aReas
 
   MOZ_ASSERT(f, "should have found an ancestor frame to reflow");
 
-  PresContext()->PresShell()->FrameNeedsReflow(f, aReason, NS_FRAME_IS_DIRTY);
+  PresShell()->FrameNeedsReflow(f, aReason, NS_FRAME_IS_DIRTY);
 }
 
 NS_IMPL_ISUPPORTS(SVGTextFrame::MutationObserver, nsIMutationObserver)
@@ -3589,7 +3589,7 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
 
   nsPresContext* presContext = PresContext();
 
-  gfxMatrix initialMatrix = aContext.CurrentMatrix();
+  gfxMatrix initialMatrix = aContext.CurrentMatrixDouble();
 
   if (mState & NS_FRAME_IS_NONDISPLAY) {
     // If we are in a canvas DrawWindow call that used the
@@ -3650,7 +3650,7 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
   gfxContextMatrixAutoSaveRestore matSR(&aContext);
   aContext.NewPath();
   aContext.Multiply(canvasTMForChildren);
-  gfxMatrix currentMatrix = aContext.CurrentMatrix();
+  gfxMatrix currentMatrix = aContext.CurrentMatrixDouble();
 
   RefPtr<nsCaret> caret = presContext->PresShell()->GetCaret();
   nsRect caretRect;
@@ -3687,7 +3687,7 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
     gfxMatrix runTransform =
       run.GetTransformFromUserSpaceForPainting(presContext, item) *
       currentMatrix;
-    aContext.SetMatrix(runTransform);
+    aContext.SetMatrixDouble(runTransform);
 
     if (drawMode != DrawMode(0)) {
       bool paintSVGGlyphs;
@@ -4213,7 +4213,7 @@ SVGTextFrame::GetSubStringLengthSlowFallback(nsIContent* aContent,
   // but we would still need to resort to full reflow for percentage
   // positioning attributes.  For now we just do a full reflow regardless since
   // the cases that would cause us to be called are relatively uncommon.
-  PresContext()->PresShell()->FlushPendingNotifications(FlushType::Layout);
+  PresShell()->FlushPendingNotifications(FlushType::Layout);
 
   UpdateGlyphPositioning();
 

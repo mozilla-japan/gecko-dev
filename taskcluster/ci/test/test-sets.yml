@@ -116,7 +116,11 @@ qr-talos:
     - talos-tp5o
     - talos-perf-reftest
     - talos-perf-reftest-singletons
+    - talos-tp6
+    - talos-tp6-stylo-threads
     - talos-speedometer
+    - talos-h1
+    - talos-h2
 
 qr-tests:
     - cppunit
@@ -305,6 +309,9 @@ linux32-opt-tests:
 desktop-screenshot-capture:
     - browser-screenshots
 
+desktop-instrumentation:
+    - browser-instrumentation
+
 android-common-tests:
     - cppunit
     - crashtest
@@ -321,19 +328,21 @@ android-common-tests:
 android-debug-tests:
     # Marionette only available on Fennec debug builds as a security precaution
     - marionette
+    - geckoview
 
 android-opt-tests:
     - robocop
+    - geckoview
 
 android-gradle-tests:
     - mochitest-chrome
     - robocop
-    - geckoview
     - test-verify
 
 android-x86-tests:
     - mochitest-chrome
     - xpcshell
+    - geckoview
 
 devtools-tests:
     - mochitest-devtools-chrome

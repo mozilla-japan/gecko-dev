@@ -1819,7 +1819,7 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
 
 #ifdef XP_MACOSX
   if (rootWin) {
-    auto globalWin = nsGlobalWindow::Cast(rootWin.get());
+    auto globalWin = nsGlobalWindowOuter::Cast(rootWin.get());
     if (globalWin->IsInModalState()) {
       return false;
     }
@@ -2612,8 +2612,7 @@ nsXULPopupManager::HandleEvent(nsIDOMEvent* aEvent)
     return KeyPress(keyEvent);
   }
 
-  NS_ABORT();
-
+  MOZ_ASSERT_UNREACHABLE("Unexpected eventType");
   return NS_OK;
 }
 

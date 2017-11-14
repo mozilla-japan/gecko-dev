@@ -18,36 +18,30 @@ class nsRetrievalContextWayland : public nsRetrievalContext
 public:
     nsRetrievalContextWayland();
 
-    NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList,
-                                      uint32_t aLength,
-                                      int32_t aWhichClipboard,
-                                      bool *_retval) override;
-    NS_IMETHOD GetClipboardContent(const char* aMimeType,
-                                   int32_t aWhichClipboard,
-                                   nsIInputStream** aResult,
-                                   uint32_t* aContentLength) override;
+    virtual guchar* WaitForClipboardContext(const char* aMimeType,
+                                            int32_t aWhichClipboard,
+                                            uint32_t* aContentLength) override;
+    virtual GdkAtom* GetTargets(int32_t aWhichClipboard,
+                                int* aTargetNum) override;
 
     void SetDataOffer(wl_data_offer *aDataOffer);
     void AddMIMEType(const char *aMimeType);
-    bool HasMIMEType(const char *aMimeType);
-    // Our version of gtk_selection_data_targets_include_text()
-    bool HasMIMETypeText(void);
     void ResetMIMETypeList(void);
     void ConfigureKeyboard(wl_seat_capability caps);
 
     void InitDataDeviceManager(wl_registry *registry, uint32_t id, uint32_t version);
     void InitSeat(wl_registry *registry, uint32_t id, uint32_t version, void *data);
-private:
     virtual ~nsRetrievalContextWayland() override;
 
-    bool                    mInitialized;
-    wl_display             *mDisplay;
-    wl_seat                *mSeat;
-    wl_data_device_manager *mDataDeviceManager;
-    wl_data_offer          *mDataOffer;
-    wl_keyboard            *mKeyboard;
-    nsTArray<char*>         mMIMETypes;
-    gchar                  *mTextPlainLocale;
+private:
+    bool                        mInitialized;
+    wl_display                 *mDisplay;
+    wl_seat                    *mSeat;
+    wl_data_device_manager     *mDataDeviceManager;
+    wl_data_offer              *mDataOffer;
+    wl_keyboard                *mKeyboard;
+    nsTArray<GdkAtom>           mTargetMIMETypes;
+    gchar                      *mTextPlainLocale;
 };
 
 #endif /* __nsClipboardWayland_h_ */

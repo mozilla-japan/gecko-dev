@@ -60,7 +60,6 @@ use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
@@ -1164,8 +1163,8 @@ impl XMLHttpRequest {
             return NullValue();
         }
         // Step 4
-        fn decode_to_utf16(bytes: &[u8], encoding: &'static Encoding) -> Vec<u16> {
-            let mut decoder = encoding.new_decoder();
+        fn decode_to_utf16_with_bom_removal(bytes: &[u8], encoding: &'static Encoding) -> Vec<u16> {
+            let mut decoder = encoding.new_decoder_with_bom_removal();
             let capacity = decoder.max_utf16_buffer_length(bytes.len()).expect("Overflow");
             let mut utf16 = Vec::with_capacity(capacity);
             let extra = unsafe {
@@ -1179,7 +1178,12 @@ impl XMLHttpRequest {
             }
             utf16
         }
-        let json_text = decode_to_utf16(&bytes, UTF_8);
+        // https://xhr.spec.whatwg.org/#json-response refers to
+        // https://infra.spec.whatwg.org/#parse-json-from-bytes which refers to
+        // https://encoding.spec.whatwg.org/#utf-8-decode which means
+        // that the encoding is always UTF-8 and the UTF-8 BOM is removed,
+        // if present, but UTF-16BE/LE BOM must not be honored.
+        let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
         // Step 5
         rooted!(in(cx) let mut rval = UndefinedValue());
         unsafe {

@@ -22,6 +22,7 @@
 #include "mozilla/TelemetryIPC.h"
 #include "mozilla/devtools/HeapSnapshotTempFileHelperChild.h"
 #include "mozilla/docshell/OfflineCacheUpdateChild.h"
+#include "mozilla/dom/ClientManager.h"
 #include "mozilla/dom/ClientOpenWindowOpActors.h"
 #include "mozilla/dom/ContentBridgeChild.h"
 #include "mozilla/dom/ContentBridgeParent.h"
@@ -547,14 +548,14 @@ mozilla::ipc::IPCResult
 ContentChild::RecvSetXPCOMProcessAttributes(const XPCOMInitData& aXPCOMInit,
                                             const StructuredCloneData& aInitialData,
                                             nsTArray<LookAndFeelInt>&& aLookAndFeelIntCache,
-                                            nsTArray<FontFamilyListEntry>&& aFontFamilyList)
+                                            nsTArray<SystemFontListEntry>&& aFontList)
 {
   if (!sShutdownCanary) {
     return IPC_OK();
   }
 
   mLookAndFeelCache = Move(aLookAndFeelIntCache);
-  mFontFamilies = Move(aFontFamilyList);
+  mFontList = Move(aFontList);
   gfx::gfxVars::SetValuesForInitialize(aXPCOMInit.gfxNonDefaultVarUpdates());
   InitXPCOM(aXPCOMInit, aInitialData);
   InitGraphicsDeviceData(aXPCOMInit.contentDeviceData());
@@ -1152,6 +1153,8 @@ ContentChild::InitXPCOM(const XPCOMInitData& aXPCOMInit,
     MOZ_ASSERT_UNREACHABLE("PBackground init can't fail at this point");
     return;
   }
+
+  ClientManager::Startup();
 
   nsCOMPtr<nsIConsoleService> svc(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
   if (!svc) {
@@ -2534,6 +2537,14 @@ ContentChild::RecvUpdateDictionaryList(InfallibleTArray<nsString>&& aDictionarie
 {
   mAvailableDictionaries = aDictionaries;
   mozInlineSpellChecker::UpdateCanEnableInlineSpellChecking();
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+ContentChild::RecvUpdateFontList(InfallibleTArray<SystemFontListEntry>&& aFontList)
+{
+  mFontList = Move(aFontList);
+  gfxPlatform::GetPlatform()->UpdateFontList();
   return IPC_OK();
 }
 

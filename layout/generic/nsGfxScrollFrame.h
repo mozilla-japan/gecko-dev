@@ -69,8 +69,10 @@ public:
     nsTArray<nsIAnonymousContentCreator::ContentInfo>& aElements);
   void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements, uint32_t aFilter);
   nsresult FireScrollPortEvent();
+  void FireScrollEndEvent();
   void PostOverflowEvent();
-  void Destroy();
+  using PostDestroyData = nsIFrame::PostDestroyData;
+  void Destroy(PostDestroyData& aPostDestroyData);
 
   void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                         const nsDisplayListSet& aLists);
@@ -399,6 +401,9 @@ public:
   nsExpirationState* GetExpirationState() { return &mActivityExpirationState; }
 
   void SetTransformingByAPZ(bool aTransforming) {
+    if (mTransformingByAPZ && !aTransforming) {
+      FireScrollEndEvent();
+    }
     mTransformingByAPZ = aTransforming;
     if (!mozilla::css::TextOverflow::HasClippedOverflow(mOuter)) {
       // If the block has some text-overflow stuff we should kick off a paint
@@ -760,7 +765,7 @@ public:
   virtual void RemoveFrame(ChildListID     aListID,
                            nsIFrame*       aOldFrame) override;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
   virtual nsIScrollableFrame* GetScrollTargetFrame() override {
     return this;
@@ -1168,7 +1173,7 @@ public:
   virtual void RemoveFrame(ChildListID     aListID,
                            nsIFrame*       aOldFrame) override;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
 
   virtual nsIScrollableFrame* GetScrollTargetFrame() override {

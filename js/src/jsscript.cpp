@@ -340,8 +340,7 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
         HasMappedArgsObj,
         FunctionHasThisBinding,
         FunctionHasExtraBodyVarScope,
-        IsGeneratorExp,
-        IsStarGenerator,
+        IsGenerator,
         IsAsync,
         HasRest,
         IsExprBody,
@@ -454,10 +453,8 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
         MOZ_ASSERT_IF(sourceObjectArg, sourceObjectArg->source() == script->scriptSource());
         if (!sourceObjectArg)
             scriptBits |= (1 << OwnSource);
-        if (script->isGeneratorExp())
-            scriptBits |= (1 << IsGeneratorExp);
-        if (script->isStarGenerator())
-            scriptBits |= (1 << IsStarGenerator);
+        if (script->isGenerator())
+            scriptBits |= (1 << IsGenerator);
         if (script->asyncKind() == AsyncFunction)
             scriptBits |= (1 << IsAsync);
         if (script->hasRest())
@@ -613,8 +610,6 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
             script->functionHasThisBinding_ = true;
         if (scriptBits & (1 << FunctionHasExtraBodyVarScope))
             script->functionHasExtraBodyVarScope_ = true;
-        if (scriptBits & (1 << IsGeneratorExp))
-            script->isGeneratorExp_ = true;
         if (scriptBits & (1 << HasSingleton))
             script->hasSingletons_ = true;
         if (scriptBits & (1 << TreatAsRunOnce))
@@ -629,8 +624,8 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
             script->isDerivedClassConstructor_ = true;
         if (scriptBits & (1 << IsDefaultClassConstructor))
             script->isDefaultClassConstructor_ = true;
-        if (scriptBits & (1 << IsStarGenerator))
-            script->setGeneratorKind(StarGenerator);
+        if (scriptBits & (1 << IsGenerator))
+            script->setGeneratorKind(GeneratorKind::Generator);
         if (scriptBits & (1 << IsAsync))
             script->setAsyncKind(AsyncFunction);
         if (scriptBits & (1 << HasRest))
@@ -2954,7 +2949,6 @@ JSScript::initFromFunctionBox(JSContext* cx, HandleScript script,
 
     script->funLength_ = funbox->length;
 
-    script->isGeneratorExp_ = funbox->isGenexpLambda;
     script->setGeneratorKind(funbox->generatorKind());
     script->setAsyncKind(funbox->asyncKind());
     if (funbox->hasRest())
@@ -2979,8 +2973,7 @@ JSScript::initFromModuleContext(JSContext* cx, HandleScript script,
     script->isDerivedClassConstructor_ = false;
     script->funLength_ = 0;
 
-    script->isGeneratorExp_ = false;
-    script->setGeneratorKind(NotGenerator);
+    script->setGeneratorKind(GeneratorKind::NotGenerator);
 
     // Since modules are only run once, mark the script so that initializers
     // created within it may be given more precise types.
@@ -3204,8 +3197,6 @@ JSScript::finalize(FreeOp* fop)
 
     if (scriptData_)
         scriptData_->decRefCount();
-
-    fop->runtime()->caches().lazyScriptCache.remove(this);
 
     // In most cases, our LazyScript's script pointer will reference this
     // script, and thus be nulled out by normal weakref processing. However, if
@@ -3456,8 +3447,8 @@ CloneInnerInterpretedFunction(JSContext* cx, HandleScope enclosingScope, HandleF
 {
     /* NB: Keep this in sync with XDRInterpretedFunction. */
     RootedObject cloneProto(cx);
-    if (srcFun->isStarGenerator() || srcFun->isAsync()) {
-        cloneProto = GlobalObject::getOrCreateStarGeneratorFunctionPrototype(cx, cx->global());
+    if (srcFun->isGenerator() || srcFun->isAsync()) {
+        cloneProto = GlobalObject::getOrCreateGeneratorFunctionPrototype(cx, cx->global());
         if (!cloneProto)
             return nullptr;
     }
@@ -3626,7 +3617,6 @@ js::detail::CopyScript(JSContext* cx, HandleScript src, HandleScript dst,
     dst->hasSingletons_ = src->hasSingletons();
     dst->treatAsRunOnce_ = src->treatAsRunOnce();
     dst->hasInnerFunctions_ = src->hasInnerFunctions();
-    dst->isGeneratorExp_ = src->isGeneratorExp();
     dst->setGeneratorKind(src->generatorKind());
     dst->isDerivedClassConstructor_ = src->isDerivedClassConstructor();
     dst->needsHomeObject_ = src->needsHomeObject();
@@ -4196,7 +4186,7 @@ JSScript::argumentsOptimizationFailed(JSContext* cx, HandleScript script)
     if (script->needsArgsObj())
         return true;
 
-    MOZ_ASSERT(!script->isStarGenerator());
+    MOZ_ASSERT(!script->isGenerator());
     MOZ_ASSERT(!script->isAsync());
 
     script->needsArgsObj_ = true;
@@ -4385,7 +4375,7 @@ LazyScript::Create(JSContext* cx, HandleFunction fun,
     p.isExprBody = false;
     p.numClosedOverBindings = closedOverBindings.length();
     p.numInnerFunctions = innerFunctions.length();
-    p.generatorKindBits = GeneratorKindAsBits(NotGenerator);
+    p.generatorKind = GeneratorKindAsBit(GeneratorKind::NotGenerator);
     p.strict = false;
     p.bindingsAccessedDynamically = false;
     p.hasDebuggerStatement = false;
@@ -4527,76 +4517,6 @@ bool
 JSScript::mayReadFrameArgsDirectly()
 {
     return argumentsHasVarBinding() || hasRest();
-}
-
-static inline void
-LazyScriptHash(uint32_t lineno, uint32_t column, uint32_t begin, uint32_t end,
-               HashNumber hashes[3])
-{
-    HashNumber hash = lineno;
-    hash = RotateLeft(hash, 4) ^ column;
-    hash = RotateLeft(hash, 4) ^ begin;
-    hash = RotateLeft(hash, 4) ^ end;
-
-    hashes[0] = hash;
-    hashes[1] = RotateLeft(hashes[0], 4) ^ begin;
-    hashes[2] = RotateLeft(hashes[1], 4) ^ end;
-}
-
-void
-LazyScriptHashPolicy::hash(const Lookup& lookup, HashNumber hashes[3])
-{
-    LazyScript* lazy = lookup.lazy;
-    LazyScriptHash(lazy->lineno(), lazy->column(), lazy->begin(), lazy->end(), hashes);
-}
-
-void
-LazyScriptHashPolicy::hash(JSScript* script, HashNumber hashes[3])
-{
-    LazyScriptHash(script->lineno(), script->column(), script->sourceStart(), script->sourceEnd(), hashes);
-}
-
-bool
-LazyScriptHashPolicy::match(JSScript* script, const Lookup& lookup)
-{
-    JSContext* cx = lookup.cx;
-    LazyScript* lazy = lookup.lazy;
-
-    // To be a match, the script and lazy script need to have the same line
-    // and column and to be at the same position within their respective
-    // source blobs, and to have the same source contents and version.
-    //
-    // While the surrounding code in the source may differ, this is
-    // sufficient to ensure that compiling the lazy script will yield an
-    // identical result to compiling the original script.
-    //
-    // Note that the filenames and origin principals of the lazy script and
-    // original script can differ. If there is a match, these will be fixed
-    // up in the resulting clone by the caller.
-
-    if (script->lineno() != lazy->lineno() ||
-        script->column() != lazy->column() ||
-        script->getVersion() != lazy->version() ||
-        script->sourceStart() != lazy->begin() ||
-        script->sourceEnd() != lazy->end())
-    {
-        return false;
-    }
-
-    UncompressedSourceCache::AutoHoldEntry holder;
-
-    size_t scriptBegin = script->sourceStart();
-    size_t length = script->sourceEnd() - scriptBegin;
-    ScriptSource::PinnedChars scriptChars(cx, script->scriptSource(), holder, scriptBegin, length);
-    if (!scriptChars.get())
-        return false;
-
-    MOZ_ASSERT(scriptBegin == lazy->begin());
-    ScriptSource::PinnedChars lazyChars(cx, lazy->scriptSource(), holder, scriptBegin, length);
-    if (!lazyChars.get())
-        return false;
-
-    return !memcmp(scriptChars.get(), lazyChars.get(), length);
 }
 
 void

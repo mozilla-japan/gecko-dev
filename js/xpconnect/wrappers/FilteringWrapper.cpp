@@ -224,7 +224,11 @@ CrossOriginXrayWrapper::getPropertyDescriptor(JSContext* cx,
         desc.object().set(wrapper);
 
         // All properties on cross-origin DOM objects are "configurable". Any
-        // value attributes are read-only.
+        // value attributes are read-only.  Indexed properties are enumerable,
+        // but nothing else is.
+        if (!JSID_IS_INT(id)) {
+            desc.attributesRef() &= ~JSPROP_ENUMERATE;
+        }
         desc.attributesRef() &= ~JSPROP_PERMANENT;
         if (!desc.getter() && !desc.setter())
             desc.attributesRef() |= JSPROP_READONLY;

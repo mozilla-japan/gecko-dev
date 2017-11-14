@@ -431,12 +431,7 @@ class ICGetElem_Fallback : public ICMonitoredFallbackStub
         { }
 
         ICStub* getStub(ICStubSpace* space) {
-            ICGetElem_Fallback* stub = newStub<ICGetElem_Fallback>(space, getStubCode());
-            if (!stub)
-                return nullptr;
-            if (!stub->initMonitoringChain(cx, space))
-                return nullptr;
-            return stub;
+            return newStub<ICGetElem_Fallback>(space, getStubCode());
         }
     };
 };
@@ -562,10 +557,7 @@ class ICGetName_Fallback : public ICMonitoredFallbackStub
         { }
 
         ICStub* getStub(ICStubSpace* space) {
-            ICGetName_Fallback* stub = newStub<ICGetName_Fallback>(space, getStubCode());
-            if (!stub || !stub->initMonitoringChain(cx, space))
-                return nullptr;
-            return stub;
+            return newStub<ICGetName_Fallback>(space, getStubCode());
         }
     };
 };
@@ -617,11 +609,7 @@ class ICGetIntrinsic_Fallback : public ICMonitoredFallbackStub
         { }
 
         ICStub* getStub(ICStubSpace* space) {
-            ICGetIntrinsic_Fallback* stub =
-                newStub<ICGetIntrinsic_Fallback>(space, getStubCode());
-            if (!stub || !stub->initMonitoringChain(cx, space))
-                return nullptr;
-            return stub;
+            return newStub<ICGetIntrinsic_Fallback>(space, getStubCode());
         }
     };
 };
@@ -799,10 +787,7 @@ class ICCall_Fallback : public ICMonitoredFallbackStub
         { }
 
         ICStub* getStub(ICStubSpace* space) {
-            ICCall_Fallback* stub = newStub<ICCall_Fallback>(space, getStubCode());
-            if (!stub || !stub->initMonitoringChain(cx, space))
-                return nullptr;
-            return stub;
+            return newStub<ICCall_Fallback>(space, getStubCode());
         }
     };
 };
@@ -1298,13 +1283,13 @@ class ICCall_ConstStringSplit : public ICMonitoredStub
    };
 };
 
-class ICCall_IsSuspendedStarGenerator : public ICStub
+class ICCall_IsSuspendedGenerator : public ICStub
 {
     friend class ICStubSpace;
 
   protected:
-    explicit ICCall_IsSuspendedStarGenerator(JitCode* stubCode)
-      : ICStub(ICStub::Call_IsSuspendedStarGenerator, stubCode)
+    explicit ICCall_IsSuspendedGenerator(JitCode* stubCode)
+      : ICStub(ICStub::Call_IsSuspendedGenerator, stubCode)
     {}
 
   public:
@@ -1314,10 +1299,10 @@ class ICCall_IsSuspendedStarGenerator : public ICStub
 
       public:
         explicit Compiler(JSContext* cx)
-          : ICStubCompiler(cx, ICStub::Call_IsSuspendedStarGenerator, Engine::Baseline)
+          : ICStubCompiler(cx, ICStub::Call_IsSuspendedGenerator, Engine::Baseline)
         {}
         ICStub* getStub(ICStubSpace* space) {
-            return newStub<ICCall_IsSuspendedStarGenerator>(space, getStubCode());
+            return newStub<ICCall_IsSuspendedGenerator>(space, getStubCode());
         }
    };
 };

@@ -579,7 +579,7 @@ PeerConnectionConfiguration::AddIceServer(const RTCIceServer &aServer)
 
 nsresult
 PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
-                               nsGlobalWindow* aWindow,
+                               nsGlobalWindowInner* aWindow,
                                const PeerConnectionConfiguration& aConfiguration,
                                nsISupports* aThread)
 {
@@ -727,7 +727,7 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
 
 void
 PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
-                               nsGlobalWindow& aWindow,
+                               nsGlobalWindowInner& aWindow,
                                const RTCConfiguration& aConfiguration,
                                nsISupports* aThread,
                                ErrorResult &rv)
@@ -744,7 +744,7 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
     return;
   }
 
-  res = Initialize(aObserver, &aWindow, converted, aThread);
+  res = Initialize(aObserver, aWindow.AssertInner(), converted, aThread);
   if (NS_FAILED(res)) {
     rv.Throw(res);
     return;
@@ -829,11 +829,11 @@ class CompareCodecPriority {
 class ConfigureCodec {
   public:
     explicit ConfigureCodec(nsCOMPtr<nsIPrefBranch>& branch) :
-      mHardwareH264Enabled(false),
       mHardwareH264Supported(false),
       mSoftwareH264Enabled(false),
       mH264Enabled(false),
-      mVP9Enabled(false),
+      mVP9Enabled(true),
+      mVP9Preferred(false),
       mH264Level(13), // minimum suggested for WebRTC spec
       mH264MaxBr(0), // Unlimited
       mH264MaxMbps(0), // Unlimited
@@ -858,6 +858,9 @@ class ConfigureCodec {
 
       branch->GetBoolPref("media.peerconnection.video.vp9_enabled",
           &mVP9Enabled);
+
+      branch->GetBoolPref("media.peerconnection.video.vp9_preferred",
+          &mVP9Preferred);
 
       branch->GetIntPref("media.navigator.video.max_fs", &mVP8MaxFs);
       if (mVP8MaxFs <= 0) {
@@ -930,9 +933,14 @@ class ConfigureCodec {
             } else if (videoCodec.mName == "ulpfec") {
               videoCodec.mEnabled = mRedUlpfecEnabled;
             } else if (videoCodec.mName == "VP8" || videoCodec.mName == "VP9") {
-              if (videoCodec.mName == "VP9" && !mVP9Enabled) {
-                videoCodec.mEnabled = false;
-                break;
+              if (videoCodec.mName == "VP9") {
+                if (!mVP9Enabled) {
+                  videoCodec.mEnabled = false;
+                  break;
+                }
+                if (mVP9Preferred) {
+                  videoCodec.mStronglyPreferred = true;
+                }
               }
               videoCodec.mConstraints.maxFs = mVP8MaxFs;
               videoCodec.mConstraints.maxFps = mVP8MaxFr;
@@ -954,11 +962,11 @@ class ConfigureCodec {
     }
 
   private:
-    bool mHardwareH264Enabled;
     bool mHardwareH264Supported;
     bool mSoftwareH264Enabled;
     bool mH264Enabled;
     bool mVP9Enabled;
+    bool mVP9Preferred;
     int32_t mH264Level;
     int32_t mH264MaxBr;
     int32_t mH264MaxMbps;

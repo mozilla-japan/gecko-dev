@@ -571,10 +571,10 @@ gfxShapedText::SetupClusterBoundaries(uint32_t        aOffset,
                                       const char16_t *aString,
                                       uint32_t        aLength)
 {
-    CompressedGlyph *glyphs = GetCharacterGlyphs() + aOffset;
+    CompressedGlyph* glyphs = GetCharacterGlyphs() + aOffset;
 
-    gfxTextRun::CompressedGlyph extendCluster;
-    extendCluster.SetComplex(false, true, 0);
+    CompressedGlyph extendCluster =
+        CompressedGlyph::MakeComplex(false, true, 0);
 
     ClusterIterator iter(aString, aLength);
 
@@ -1679,7 +1679,7 @@ private:
                   fillPattern =
                     mFontParams.contextPaint->GetFillPattern(
                                           mRunParams.context->GetDrawTarget(),
-                                          mRunParams.context->CurrentMatrix(),
+                                          mRunParams.context->CurrentMatrixDouble(),
                                           imgParams);
                 }
                 if (!fillPattern) {
@@ -1722,8 +1722,7 @@ private:
                     }
 
                     mRunParams.dt->FillGlyphs(mFontParams.scaledFont, buf,
-                                              *pat, mFontParams.drawOptions,
-                                              mFontParams.renderingOptions);
+                                              *pat, mFontParams.drawOptions);
 
                     if (mat) {
                         *mat = saved;
@@ -1734,13 +1733,11 @@ private:
                                           SurfacePattern(state.sourceSurface,
                                                          ExtendMode::CLAMP,
                                                          state.surfTransform),
-                                          mFontParams.drawOptions,
-                                          mFontParams.renderingOptions);
+                                          mFontParams.drawOptions);
             } else {
                 mRunParams.dt->FillGlyphs(mFontParams.scaledFont, buf,
                                           ColorPattern(state.color),
-                                          mFontParams.drawOptions,
-                                          mFontParams.renderingOptions);
+                                          mFontParams.drawOptions);
             }
         }
         if (GetStrokeMode(mRunParams.drawMode) == DrawMode::GLYPH_STROKE &&
@@ -1801,8 +1798,7 @@ private:
         mRunParams.dt->StrokeGlyphs(mFontParams.scaledFont, aBuf,
                                     aPattern,
                                     *mRunParams.strokeOpts,
-                                    mFontParams.drawOptions,
-                                    mFontParams.renderingOptions);
+                                    mFontParams.drawOptions);
     }
 
     // We use an "inline" buffer automatically allocated (on the stack) as part
@@ -1992,7 +1988,6 @@ gfxFont::DrawOneGlyph(uint32_t aGlyphID, const gfx::Point& aPt,
         if (fontParams.haveColorGlyphs &&
             RenderColorGlyph(runParams.dt, runParams.context,
                              fontParams.scaledFont,
-                             fontParams.renderingOptions,
                              fontParams.drawOptions,
                              fontParams.matInv.TransformPoint(devPt),
                              aGlyphID)) {
@@ -2168,7 +2163,7 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
                         gfx::ShapedTextFlags::TEXT_ORIENT_VERTICAL_SIDEWAYS_LEFT)
                        ? -M_PI / 2.0 : M_PI / 2.0;
         gfxMatrix mat =
-            aRunParams.context->CurrentMatrix().
+            aRunParams.context->CurrentMatrixDouble().
             PreTranslate(p).     // translate origin for rotation
             PreRotate(rotation). // turn 90deg CCW (sideways-left) or CW (*-right)
             PreTranslate(-p);    // undo the translation
@@ -2187,7 +2182,7 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
             mat.PreTranslate(baseAdj);
         }
 
-        aRunParams.context->SetMatrix(mat);
+        aRunParams.context->SetMatrixDouble(mat);
     }
 
     RefPtr<SVGContextPaint> contextPaint;
@@ -2198,7 +2193,7 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
         RefPtr<gfxPattern> fillPattern = aRunParams.context->GetPattern();
         contextPaint =
             new SimpleTextContextPaint(fillPattern, nullptr,
-                                       aRunParams.context->CurrentMatrix());
+                                       aRunParams.context->CurrentMatrixDouble());
         fontParams.contextPaint = contextPaint.get();
     }
 
@@ -2234,7 +2229,6 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
     // to transform the Brush inside flush.
     fontParams.passedInvMatrix = nullptr;
 
-    fontParams.renderingOptions = GetGlyphRenderingOptions(&aRunParams);
     fontParams.drawOptions.mAntialiasMode = Get2DAAMode(mAntialiasOption);
 
     // The cairo DrawTarget backend uses the cairo_scaled_font directly
@@ -2377,7 +2371,6 @@ bool
 gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget,
                           gfxContext* aContext,
                           mozilla::gfx::ScaledFont* scaledFont,
-                          GlyphRenderingOptions* aRenderingOptions,
                           mozilla::gfx::DrawOptions aDrawOptions,
                           const mozilla::gfx::Point& aPoint,
                           uint32_t aGlyphId) const
@@ -2406,7 +2399,7 @@ gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget,
 
         aDrawTarget->FillGlyphs(scaledFont, buffer,
                                 ColorPattern(layerColors[layerIndex]),
-                                aDrawOptions, aRenderingOptions);
+                                aDrawOptions);
     }
     return true;
 }
@@ -4044,6 +4037,7 @@ gfxFontStyle::gfxFontStyle() :
     language(nsGkAtoms::x_western),
     size(DEFAULT_PIXEL_FONT_SIZE), sizeAdjust(-1.0f), baselineOffset(0.0f),
     languageOverride(NO_FONT_LANGUAGE_OVERRIDE),
+    fontSmoothingBackgroundColor(NS_RGBA(0, 0, 0, 0)),
     weight(NS_FONT_WEIGHT_NORMAL), stretch(NS_FONT_STRETCH_NORMAL),
     style(NS_FONT_STYLE_NORMAL),
     variantCaps(NS_FONT_VARIANT_CAPS_NORMAL),
@@ -4066,6 +4060,7 @@ gfxFontStyle::gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
     language(aLanguage),
     size(aSize), sizeAdjust(aSizeAdjust), baselineOffset(0.0f),
     languageOverride(aLanguageOverride),
+    fontSmoothingBackgroundColor(NS_RGBA(0, 0, 0, 0)),
     weight(aWeight), stretch(aStretch),
     style(aStyle),
     variantCaps(NS_FONT_VARIANT_CAPS_NORMAL),

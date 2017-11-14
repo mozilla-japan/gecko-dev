@@ -306,9 +306,24 @@ function waitForDocumentLoad() {
  * Enters test refresh mode, and restores the mode when |t| finishes.
  */
 function useTestRefreshMode(t) {
-  SpecialPowers.DOMWindowUtils.advanceTimeAndRefresh(0);
-  t.add_cleanup(() => {
-    SpecialPowers.DOMWindowUtils.restoreNormalRefresh();
+  function ensureNoSuppressedPaints() {
+    return new Promise(resolve => {
+      function checkSuppressedPaints() {
+        if (!SpecialPowers.DOMWindowUtils.paintingSuppressed) {
+          resolve();
+        } else {
+          window.requestAnimationFrame(checkSuppressedPaints);
+        }
+      }
+      checkSuppressedPaints();
+    });
+  }
+
+  return ensureNoSuppressedPaints().then(() => {
+    SpecialPowers.DOMWindowUtils.advanceTimeAndRefresh(0);
+    t.add_cleanup(() => {
+      SpecialPowers.DOMWindowUtils.restoreNormalRefresh();
+    });
   });
 }
 
@@ -366,4 +381,14 @@ function getDistance(target, prop, v1, v2) {
   }
   return SpecialPowers.DOMWindowUtils
            .computeAnimationDistance(target, prop, v1, v2);
+}
+
+/*
+ * A promise wrapper for waiting MozAfterPaint.
+ */
+function waitForPaints() {
+  // FIXME: Bug 1415065. Instead waiting for two requestAnimationFrames, we
+  // should wait for MozAfterPaint once after MozAfterPaint is fired properly
+  // (bug 1341294).
+  return waitForAnimationFrames(2);
 }

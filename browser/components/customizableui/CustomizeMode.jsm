@@ -107,7 +107,6 @@ function CustomizeMode(aWindow) {
   // user. Then there's the visible palette, which gets populated and displayed
   // to the user when in customizing mode.
   this.visiblePalette = this.document.getElementById(kPaletteId);
-  this.paletteEmptyNotice = this.document.getElementById("customization-empty");
   this.pongArena = this.document.getElementById("customization-pong-arena");
   if (Services.prefs.getCharPref("general.skins.selectedSkin") != "classic/1.0") {
     let lwthemeButton = this.document.getElementById("customization-lwtheme-button");
@@ -410,7 +409,6 @@ CustomizeMode.prototype = {
     let document = this.document;
 
     this.togglePong(false);
-    this.paletteEmptyNotice.hidden = true;
 
     // Disable the reset and undo reset buttons while transitioning:
     let resetButton = this.document.getElementById("customization-reset-button");
@@ -905,6 +903,12 @@ CustomizeMode.prototype = {
 
     let removable = aPlace == "palette" || CustomizableUI.isWidgetRemovable(aNode);
     wrapper.setAttribute("removable", removable);
+
+    if (AppConstants.platform == "win") {
+      // Allow touch events to initiate dragging in customize mode.
+      // This is only supported on Windows for now.
+      wrapper.setAttribute("touchdownstartsdrag", "true");
+    }
 
     let contextMenuAttrName = "";
     if (aNode.getAttribute("context")) {
@@ -1536,7 +1540,6 @@ CustomizeMode.prototype = {
 
   _updateEmptyPaletteNotice() {
     let paletteItems = this.visiblePalette.getElementsByTagName("toolbarpaletteitem");
-    this.paletteEmptyNotice.hidden = !!paletteItems.length;
     let whimsyButton = this.document.getElementById("whimsy-button");
 
     if (paletteItems.length == 1 &&
@@ -2587,7 +2590,12 @@ CustomizeMode.prototype = {
 
     function updatePlayers() {
       if (keydown) {
-        p1 += (keydown == 37 ? -1 : 1) * 10 * keydownAdj;
+        let p1Adj = 1;
+        if ((keydown == 37 && !isRTL) ||
+            (keydown == 39 && isRTL)) {
+          p1Adj = -1;
+        }
+        p1 += p1Adj * 10 * keydownAdj;
       }
 
       let sign = Math.sign(ballDxDy[0]);
@@ -2619,15 +2627,16 @@ CustomizeMode.prototype = {
     }
 
     function draw() {
-      elements.player1.style.transform = "translate(" + p1 + "px, -37px)";
-      elements.player2.style.transform = "translate(" + p2 + "px, 300px)";
-      elements.ball.style.transform = "translate(" + ball[0] + "px, " + ball[1] + "px)";
-      elements.score.textContent = score;
-      elements.lives.setAttribute("lives", lives);
+      let xAdj = isRTL ? -1 : 1;
+      elements["wp-player1"].style.transform = "translate(" + (xAdj * p1) + "px, -37px)";
+      elements["wp-player2"].style.transform = "translate(" + (xAdj * p2) + "px, " + gameSide + "px)";
+      elements["wp-ball"].style.transform = "translate(" + (xAdj * ball[0]) + "px, " + ball[1] + "px)";
+      elements["wp-score"].textContent = score;
+      elements["wp-lives"].setAttribute("lives", lives);
       if (score >= winScore) {
         let arena = elements.arena;
         let image = "url(chrome://browser/skin/customizableui/whimsy.png)";
-        let position = `${ball[0] - 10}px ${ball[1] - 10}px`;
+        let position = `${(isRTL ? gameSide : 0) + (xAdj * ball[0]) - 10}px ${ball[1] - 10}px`;
         let repeat = "no-repeat";
         let size = "20px";
         if (arena.style.backgroundImage) {
@@ -2648,6 +2657,22 @@ CustomizeMode.prototype = {
     }
 
     function onkeydown(event) {
+      keys.push(event.which);
+      if (keys.length > 10) {
+        keys.shift();
+        let codeEntered = true;
+        for (let i = 0; i < keys.length; i++) {
+          if (keys[i] != keysCode[i]) {
+            codeEntered = false;
+            break;
+          }
+        }
+        if (codeEntered) {
+          elements.arena.setAttribute("kcode", "true");
+          let spacer = document.querySelector("#customization-palette > toolbarpaletteitem");
+          spacer.setAttribute("kcode", "true");
+        }
+      }
       if (event.which == 37 /* left */ ||
           event.which == 39 /* right */) {
         keydown = event.which;
@@ -2674,10 +2699,13 @@ CustomizeMode.prototype = {
       }
       arena.removeAttribute("score");
       arena.removeAttribute("lives");
+      arena.removeAttribute("kcode");
       arena.style.removeProperty("background-image");
       arena.style.removeProperty("background-position");
       arena.style.removeProperty("background-repeat");
       arena.style.removeProperty("background-size");
+      let spacer = document.querySelector("#customization-palette > toolbarpaletteitem");
+      spacer.removeAttribute("kcode");
       elements = null;
       document = null;
       quit = true;
@@ -2699,6 +2727,8 @@ CustomizeMode.prototype = {
     let paddleWidth = 84;
     let keydownAdj = 1;
     let keydown = 0;
+    let keys = [];
+    let keysCode = [38, 38, 40, 40, 37, 39, 37, 39, 66, 65];
     let lives = 5;
     let winScore = 11;
     let quit = false;
@@ -2707,18 +2737,19 @@ CustomizeMode.prototype = {
     let elements = {
       arena: document.getElementById("customization-pong-arena")
     };
+    let isRTL = document.documentElement.matches(":-moz-locale-dir(rtl)");
 
     document.addEventListener("keydown", onkeydown);
     document.addEventListener("keyup", onkeyup);
 
     for (let id of ["player1", "player2", "ball", "score", "lives"]) {
       let el = document.createElement("box");
-      el.id = id;
-      elements[id] = elements.arena.appendChild(el);
+      el.id = "wp-" + id;
+      elements[el.id] = elements.arena.appendChild(el);
     }
 
     let spacer = this.visiblePalette.querySelector("toolbarpaletteitem");
-    for (let player of ["#player1", "#player2"]) {
+    for (let player of ["#wp-player1", "#wp-player2"]) {
       let val = "-moz-element(#" + spacer.id + ") no-repeat";
       elements.arena.querySelector(player).style.background = val;
     }
@@ -2728,10 +2759,10 @@ CustomizeMode.prototype = {
       update();
       draw();
       if (quit) {
-        elements.score.textContent = score;
-        elements.lives && elements.lives.setAttribute("lives", lives);
+        elements["wp-score"].textContent = score;
+        elements["wp-lives"] && elements["wp-lives"].setAttribute("lives", lives);
         elements.arena.setAttribute("score", score);
-        elements.arena.setAttribute("lives", "0");
+        elements.arena.setAttribute("lives", lives);
       } else {
         rAFHandle = window.requestAnimationFrame(animate);
       }

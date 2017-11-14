@@ -1,6 +1,6 @@
 Latest Firefox trunk with applied Wayland patches from Mozilla bugzilla [1].
 
-Build with "--enable-default-toolkit=cairo-gtk3-wayland" and run as $GDK_BACKEND=wayland ./firefox.
+Build as "./mach build" and run from objdir-wayland/dist/bin subdirectory.
 
 There's also compiled version available as flatpak [2] at Fedora hosted site.
 

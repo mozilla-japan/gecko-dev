@@ -15,9 +15,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/NotificationDB.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "extensionNameFromURI", () => {
-  return Cu.import("resource://gre/modules/ExtensionParent.jsm", {}).extensionNameFromURI;
-});
+const {WebExtensionPolicy} = Cu.getGlobalForObject(Services);
 
 // lazy module getters
 
@@ -7128,9 +7126,9 @@ var gIdentityHandler = {
   _uriHasHost: false,
 
   /**
-   * Whether this is a "moz-extension:" page, loaded from a WebExtension.
+   * If this tab belongs to a WebExtension, contains its WebExtensionPolicy.
    */
-  _isExtensionPage: false,
+  _pageExtensionPolicy: null,
 
   /**
    * Whether this._uri refers to an internally implemented browser page.
@@ -7197,6 +7195,10 @@ var gIdentityHandler = {
 
   get _isCertUserOverridden() {
     return this._state & Ci.nsIWebProgressListener.STATE_CERT_USER_OVERRIDDEN;
+  },
+
+  get _isCertDistrustImminent() {
+    return this._state & Ci.nsIWebProgressListener.STATE_CERT_DISTRUST_IMMINENT;
   },
 
   get _hasInsecureLoginForms() {
@@ -7324,28 +7326,13 @@ var gIdentityHandler = {
     this._identityPopup.hidePopup();
   },
 
-  toggleSubView(name, anchor) {
-    let view = this._identityPopupMultiView;
-    let id = `identity-popup-${name}View`;
-    let subView = document.getElementById(id);
+  showSecuritySubView() {
+    this._identityPopupMultiView.showSubView("identity-popup-securityView",
+                                             this._popupExpander);
 
-    // Listen for the subview showing or hiding to change
-    // the tooltip on the expander button.
-    subView.addEventListener("ViewShowing", this);
-    subView.addEventListener("ViewHiding", this);
-
-    if (view.showingSubView) {
-      view.showMainView();
-    } else {
-      view.showSubView(id, anchor);
-    }
-
-    // If an element is focused that's not the anchor, clear the focus.
     // Elements of hidden views have -moz-user-focus:ignore but setting that
     // per CSS selector doesn't blur a focused element in those hidden views.
-    if (Services.focus.focusedElement != anchor) {
-      Services.focus.clearFocus(window);
-    }
+    Services.focus.clearFocus(window);
   },
 
   disableMixedContentProtection() {
@@ -7450,6 +7437,19 @@ var gIdentityHandler = {
     // we receive a new security state on the existing page (i.e. from a
     // subframe). If the user opened the popup and looks at the provided
     // information we don't want to suddenly change the panel contents.
+
+    // Finally, if there are warnings to issue, issue them
+    if (this._isCertDistrustImminent) {
+      let consoleMsg = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
+      let windowId = gBrowser.selectedBrowser.innerWindowID;
+      let message = gBrowserBundle.GetStringFromName("certImminentDistrust.message");
+      // Use uri.prePath instead of initWithSourceURI() so that these can be
+      // de-duplicated on the scheme+host+port combination.
+      consoleMsg.initWithWindowID(message, uri.prePath, null, 0, 0,
+                                  Ci.nsIScriptError.warningFlag, "SSL",
+                                  windowId);
+      Services.console.logMessage(consoleMsg);
+    }
   },
 
   /**
@@ -7554,9 +7554,9 @@ var gIdentityHandler = {
         icon_labels_dir = /^[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/.test(icon_label) ?
                           "rtl" : "ltr";
       }
-    } else if (this._isExtensionPage) {
+    } else if (this._pageExtensionPolicy) {
       this._identityBox.className = "extensionPage";
-      let extensionName = extensionNameFromURI(this._uri);
+      let extensionName = this._pageExtensionPolicy.name;
       icon_label = gNavigatorBundle.getFormattedString(
         "identity.extension.label", [extensionName]);
     } else if (this._uriHasHost && this._isSecure) {
@@ -7635,8 +7635,8 @@ var gIdentityHandler = {
     // Push the appropriate strings out to the UI
     this._connectionIcon.setAttribute("tooltiptext", tooltip);
 
-    if (this._isExtensionPage) {
-      let extensionName = extensionNameFromURI(this._uri);
+    if (this._pageExtensionPolicy) {
+      let extensionName = this._pageExtensionPolicy.name;
       this._extensionIcon.setAttribute("tooltiptext",
         gNavigatorBundle.getFormattedString("identity.extension.tooltip", [extensionName]));
     }
@@ -7665,14 +7665,14 @@ var gIdentityHandler = {
     this._identityPopupInsecureLoginFormsLearnMore
         .setAttribute("href", baseURL + "insecure-password");
 
-    // The expander switches its tooltip when toggled, change it to the default.
+    // This is in the properties file because the expander used to switch its tooltip.
     this._popupExpander.tooltipText = gNavigatorBundle.getString("identity.showDetails.tooltip");
 
     // Determine connection security information.
     let connection = "not-secure";
     if (this._isSecureInternalUI) {
       connection = "chrome";
-    } else if (this._isExtensionPage) {
+    } else if (this._pageExtensionPolicy) {
       connection = "extension";
     } else if (this._isURILoadedFromFile) {
       connection = "file";
@@ -7754,8 +7754,8 @@ var gIdentityHandler = {
       hostless = true;
     }
 
-    if (this._isExtensionPage) {
-      host = extensionNameFromURI(this._uri);
+    if (this._pageExtensionPolicy) {
+      host = this._pageExtensionPolicy.name;
     }
 
     // Fill in the CA name if we have a valid TLS certificate.
@@ -7811,7 +7811,7 @@ var gIdentityHandler = {
     this._isSecureInternalUI = uri.schemeIs("about") &&
       this._secureInternalUIWhitelist.test(uri.pathQueryRef);
 
-    this._isExtensionPage = uri.schemeIs("moz-extension");
+    this._pageExtensionPolicy = WebExtensionPolicy.getByURI(uri);
 
     // Create a channel for the sole purpose of getting the resolved URI
     // of the request to determine if it's loaded from the file system.
@@ -7895,16 +7895,6 @@ var gIdentityHandler = {
   },
 
   handleEvent(event) {
-    // If the subview is shown or hidden, change the tooltip on the expander button.
-    if (event.type == "ViewShowing") {
-      this._popupExpander.tooltipText = gNavigatorBundle.getString("identity.hideDetails.tooltip");
-      return;
-    }
-    if (event.type == "ViewHiding") {
-      this._popupExpander.tooltipText = gNavigatorBundle.getString("identity.showDetails.tooltip");
-      return;
-    }
-
     let elem = document.activeElement;
     let position = elem.compareDocumentPosition(this._identityPopup);
 

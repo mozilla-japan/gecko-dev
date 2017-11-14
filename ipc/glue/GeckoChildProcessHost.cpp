@@ -628,7 +628,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   // send the child the PID so that it can open a ProcessHandle back to us.
   // probably don't want to do this in the long run
   char pidstring[32];
-  SprintfLiteral(pidstring,"%d", base::Process::Current().pid());
+  SprintfLiteral(pidstring, "%d", base::GetCurrentProcId());
 
   const char* const childProcessType =
       XRE_ChildProcessTypeToString(mProcessType);
@@ -950,8 +950,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   switch (mProcessType) {
     case GeckoProcessType_Content:
 #  if defined(MOZ_CONTENT_SANDBOX)
-      if (mSandboxLevel > 0 &&
-          !PR_GetEnv("MOZ_DISABLE_CONTENT_SANDBOX")) {
+      if (mSandboxLevel > 0) {
         // For now we treat every failure as fatal in SetSecurityLevelForContentProcess
         // and just crash there right away. Should this change in the future then we
         // should also handle the error here.

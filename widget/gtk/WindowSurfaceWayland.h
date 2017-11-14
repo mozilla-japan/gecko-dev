@@ -24,11 +24,10 @@ public:
   nsWaylandDisplay(wl_display *aDisplay);
 
   wl_shm*             GetShm();
-  wl_event_queue*     GetEventQueue();
-
   void                SetShm(wl_shm* aShm)   { mShm = aShm; };
   wl_display*         GetDisplay()           { return mDisplay; };
   gfx::SurfaceFormat  GetSurfaceFormat()     { return mFormat; };
+  wl_event_queue*     GetEventQueue()        { return mEventQueue; };
   bool                DisplayLoop();
   bool                Matches(wl_display *aDisplay);
 #ifdef DEBUG

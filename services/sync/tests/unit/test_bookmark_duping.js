@@ -1,7 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-Cu.import("resource://gre/modules/PlacesSyncUtils.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-sync/engines.js");
@@ -47,15 +46,15 @@ async function cleanup(engine, server) {
   await engine.finalize();
 }
 
-async function syncIdToId(syncId) {
-  let guid = PlacesSyncUtils.bookmarks.syncIdToGuid(syncId);
+async function recordIdToId(recordId) {
+  let guid = PlacesSyncUtils.bookmarks.recordIdToGuid(recordId);
   return PlacesUtils.promiseItemId(guid);
 }
 
 async function getFolderChildrenIDs(folderId) {
-  let folderSyncId = PlacesSyncUtils.bookmarks.guidToSyncId(await PlacesUtils.promiseItemGuid(folderId));
-  let syncIds = await PlacesSyncUtils.bookmarks.fetchChildSyncIds(folderSyncId);
-  return Promise.all(syncIds.map((syncId) => syncIdToId(syncId)));
+  let folderRecordId = PlacesSyncUtils.bookmarks.guidToRecordId(await PlacesUtils.promiseItemGuid(folderId));
+  let recordIds = await PlacesSyncUtils.bookmarks.fetchChildRecordIds(folderRecordId);
+  return Promise.all(recordIds.map((recordId) => recordIdToId(recordId)));
 }
 
 async function createFolder(parentId, title) {
@@ -551,8 +550,8 @@ add_task(async function test_dupe_reparented_to_future_arriving_parent_bookmark(
 
     // As the incoming parent is missing the item should have been annotated
     // with that missing parent.
-    equal(PlacesUtils.annotations.getItemAnnotation((await store.idForGUID(newGUID)), "sync/parent"),
-          newParentGUID);
+    equal(PlacesUtils.annotations.getItemAnnotation((await store.idForGUID(newGUID)),
+      PlacesSyncUtils.bookmarks.SYNC_PARENT_ANNO), newParentGUID);
 
     // Check the validator. Sadly, this is known to cause a mismatch between
     // the server and client views of the tree.

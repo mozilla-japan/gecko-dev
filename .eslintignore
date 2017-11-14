@@ -181,6 +181,7 @@ devtools/server/tests/unit/setBreakpoint*
 devtools/server/tests/unit/sourcemapped.js
 
 # dom/ exclusions
+dom/abort/**
 dom/animation/**
 dom/archivereader/**
 dom/asmjscache/**
@@ -245,6 +246,7 @@ dom/vr/**
 dom/webauthn/**
 dom/webbrowserpersist/**
 dom/webidl/**
+dom/websocket/**
 dom/workers/**
 dom/worklet/**
 dom/xbl/**
@@ -334,7 +336,6 @@ testing/xpcshell/node-http2/**
 # Third party services
 services/common/kinto-http-client.js
 services/common/kinto-offline-client.js
-services/sync/tps/extensions/mozmill
 
 # toolkit/ exclusions
 

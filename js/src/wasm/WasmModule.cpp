@@ -988,9 +988,29 @@ GetGlobalExport(JSContext* cx, const GlobalDescVector& globals, uint32_t globalI
     // Imports are located upfront in the globals array.
     Val val;
     switch (global.kind()) {
-      case GlobalKind::Import:   val = globalImports[globalIndex]; break;
-      case GlobalKind::Variable: MOZ_CRASH("mutable variables can't be exported");
-      case GlobalKind::Constant: val = global.constantValue(); break;
+      case GlobalKind::Import: {
+        val = globalImports[globalIndex];
+        break;
+      }
+      case GlobalKind::Variable: {
+        MOZ_ASSERT(!global.isMutable(), "mutable variables can't be exported");
+        const InitExpr& init = global.initExpr();
+        switch (init.kind()) {
+          case InitExpr::Kind::Constant: {
+            val = init.val();
+            break;
+          }
+          case InitExpr::Kind::GetGlobal: {
+            val = globalImports[init.globalIndex()];
+            break;
+          }
+        }
+        break;
+      }
+      case GlobalKind::Constant: {
+        val = global.constantValue();
+        break;
+      }
     }
 
     switch (global.type()) {
@@ -1219,9 +1239,6 @@ Module::instantiate(JSContext* cx,
         if (!instance->instance().callExport(cx, *metadata().startFuncIndex, args))
             return false;
     }
-
-    uint32_t mode = uint32_t(metadata().isAsmJS() ? Telemetry::ASMJS : Telemetry::WASM);
-    cx->runtime()->addTelemetry(JS_TELEMETRY_AOT_USAGE, mode);
 
     JSUseCounter useCounter = metadata().isAsmJS() ? JSUseCounter::ASMJS : JSUseCounter::WASM;
     cx->runtime()->setUseCounter(instance, useCounter);

@@ -1154,6 +1154,25 @@ Element::GetSlot(nsAString& aName)
   GetAttr(kNameSpaceID_None, nsGkAtoms::slot, aName);
 }
 
+// https://dom.spec.whatwg.org/#dom-element-shadowroot
+ShadowRoot*
+Element::GetShadowRootByMode() const
+{
+  /**
+   * 1. Let shadow be context object’s shadow root.
+   * 2. If shadow is null or its mode is "closed", then return null.
+   */
+  ShadowRoot* shadowRoot = GetShadowRoot();
+  if (!shadowRoot || shadowRoot->IsClosed()) {
+    return nullptr;
+  }
+
+  /**
+   * 3. Return shadow.
+   */
+  return shadowRoot;
+}
+
 // https://dom.spec.whatwg.org/#dom-element-attachshadow
 already_AddRefed<ShadowRoot>
 Element::AttachShadow(const ShadowRootInit& aInit, ErrorResult& aError)
@@ -1214,7 +1233,7 @@ Element::AttachShadowInternal(bool aClosed, ErrorResult& aError)
    * 3. If context object is a shadow host, then throw
    *    an "InvalidStateError" DOMException.
    */
-  if (GetShadowRoot()) {
+  if (GetShadowRoot() || GetXBLBinding()) {
     aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
@@ -1869,10 +1888,10 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   // XXXbz script execution during binding can trigger some of these
   // postcondition asserts....  But we do want that, since things will
   // generally be quite broken when that happens.
-  NS_POSTCONDITION(aDocument == GetUncomposedDoc(), "Bound to wrong document");
-  NS_POSTCONDITION(aParent == GetParent(), "Bound to wrong parent");
-  NS_POSTCONDITION(aBindingParent == GetBindingParent(),
-                   "Bound to wrong binding parent");
+  MOZ_ASSERT(aDocument == GetUncomposedDoc(), "Bound to wrong document");
+  MOZ_ASSERT(aParent == GetParent(), "Bound to wrong parent");
+  MOZ_ASSERT(aBindingParent == GetBindingParent(),
+             "Bound to wrong binding parent");
 
   return NS_OK;
 }
@@ -2204,7 +2223,7 @@ Element::SetInlineStyleDeclaration(DeclarationBlock* aDeclaration,
                                    const nsAString* aSerialized,
                                    bool aNotify)
 {
-  NS_NOTYETIMPLEMENTED("Element::SetInlineStyleDeclaration");
+  MOZ_ASSERT_UNREACHABLE("Element::SetInlineStyleDeclaration");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

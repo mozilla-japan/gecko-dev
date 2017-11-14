@@ -3110,12 +3110,12 @@ nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, GeckoStyleContext* aCon
  * @param data_ Variable holding the result of this function.
  */
 #define COMPUTE_END_INHERITED(type_, data_)                                   \
-  NS_POSTCONDITION(!conditions.CacheableWithoutDependencies() ||              \
-                   aRuleDetail == eRuleFullReset ||                           \
-                   (aStartStruct && aRuleDetail == eRulePartialReset),        \
-                   "conditions.CacheableWithoutDependencies() must be false " \
-                   "for inherited structs unless all properties have been "   \
-                   "specified with values other than inherit");               \
+  MOZ_ASSERT(!conditions.CacheableWithoutDependencies() ||                    \
+             aRuleDetail == eRuleFullReset ||                                 \
+             (aStartStruct && aRuleDetail == eRulePartialReset),              \
+             "conditions.CacheableWithoutDependencies() must be false "       \
+             "for inherited structs unless all properties have been "         \
+             "specified with values other than inherit");                     \
   if (conditions.CacheableWithoutDependencies()) {                            \
     /* We were fully specified and can therefore be cached right on the */    \
     /* rule node. */                                                          \
@@ -3145,13 +3145,13 @@ nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, GeckoStyleContext* aCon
  * @param data_ Variable holding the result of this function.
  */
 #define COMPUTE_END_RESET(type_, data_)                                       \
-  NS_POSTCONDITION(!conditions.CacheableWithoutDependencies() ||              \
-                   aRuleDetail == eRuleNone ||                                \
-                   aRuleDetail == eRulePartialReset ||                        \
-                   aRuleDetail == eRuleFullReset,                             \
-                   "conditions.CacheableWithoutDependencies() must be false " \
-                   "for reset structs if any properties were specified as "   \
-                   "inherit");                                                \
+  MOZ_ASSERT(!conditions.CacheableWithoutDependencies() ||                    \
+             aRuleDetail == eRuleNone ||                                      \
+             aRuleDetail == eRulePartialReset ||                              \
+             aRuleDetail == eRuleFullReset,                                   \
+             "conditions.CacheableWithoutDependencies() must be false "       \
+             "for reset structs if any properties were specified as "         \
+             "inherit");                                                      \
   if (conditions.CacheableWithoutDependencies()) {                            \
     /* We were fully specified and can therefore be cached right on the */    \
     /* rule node. */                                                          \
@@ -3760,12 +3760,28 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, GeckoStyleContext* aContext,
            SETVAL_ENUMERATED | SETVAL_UNSET_INHERIT,
            aParentFont->mMathDisplay, NS_MATHML_DISPLAYSTYLE_INLINE);
 
-  // font-smoothing: enum, inherit, initial
+  // -moz-osx-font-smoothing: enum, inherit, initial
   SetValue(*aRuleData->ValueForOsxFontSmoothing(),
            aFont->mFont.smoothing, aConditions,
            SETVAL_ENUMERATED | SETVAL_UNSET_INHERIT,
            aParentFont->mFont.smoothing,
            defaultVariableFont->smoothing);
+
+  // -moz-font-smoothing-background-color: color, inherit, initial
+  const nsCSSValue* fsbColorValue =
+    aRuleData->ValueForFontSmoothingBackgroundColor();
+  if (eCSSUnit_Initial == fsbColorValue->GetUnit()) {
+    aFont->mFont.fontSmoothingBackgroundColor = NS_RGBA(0, 0, 0, 0);
+  } else if (eCSSUnit_Inherit == fsbColorValue->GetUnit() ||
+             eCSSUnit_Unset == fsbColorValue->GetUnit()) {
+    aConditions.SetUncacheable();
+    aFont->mFont.fontSmoothingBackgroundColor =
+      aParentFont->mFont.fontSmoothingBackgroundColor;
+  } else {
+    SetColor(*fsbColorValue, aParentFont->mFont.fontSmoothingBackgroundColor,
+             aPresContext, aContext, aFont->mFont.fontSmoothingBackgroundColor,
+             aConditions);
+  }
 
   // font-style: enum, inherit, initial, -moz-system-font
   if (aFont->mMathVariant != NS_MATHML_MATHVARIANT_NONE) {
@@ -4829,13 +4845,12 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
     }
   }
 
-
   // text-align: enum, string, pair(enum|string), inherit, initial
   // NOTE: string is not implemented yet.
   const nsCSSValue* textAlignValue = aRuleData->ValueForTextAlign();
   text->mTextAlignTrue = false;
   if (eCSSUnit_String == textAlignValue->GetUnit()) {
-    NS_NOTYETIMPLEMENTED("align string");
+    MOZ_ASSERT_UNREACHABLE("align string");
   } else if (eCSSUnit_Enumerated == textAlignValue->GetUnit() &&
              NS_STYLE_TEXT_ALIGN_MOZ_CENTER_OR_INHERIT ==
                textAlignValue->GetIntValue()) {
@@ -4877,7 +4892,7 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
           textAlignValue = &textAlignValuePair.mYValue;
         }
       } else if (eCSSUnit_String == textAlignValue->GetUnit()) {
-        NS_NOTYETIMPLEMENTED("align string");
+        MOZ_ASSERT_UNREACHABLE("align string");
       }
     } else if (eCSSUnit_Inherit == textAlignValue->GetUnit() ||
                eCSSUnit_Unset == textAlignValue->GetUnit()) {
@@ -5325,18 +5340,6 @@ nsRuleNode::ComputeUserInterfaceData(void* aStartStruct,
                                  StyleComplexColor::Auto(),
                                  mPresContext,
                                  ui->mCaretColor, conditions);
-
-  // -moz-font-smoothing-background-color:
-  const nsCSSValue* fsbColorValue =
-    aRuleData->ValueForFontSmoothingBackgroundColor();
-  if (eCSSUnit_Initial == fsbColorValue->GetUnit() ||
-      eCSSUnit_Unset == fsbColorValue->GetUnit()) {
-    ui->mFontSmoothingBackgroundColor = NS_RGBA(0, 0, 0, 0);
-  } else {
-    SetColor(*fsbColorValue, parentUI->mFontSmoothingBackgroundColor,
-             mPresContext, aContext, ui->mFontSmoothingBackgroundColor,
-             conditions);
-  }
 
   COMPUTE_END_INHERITED(UserInterface, ui)
 }

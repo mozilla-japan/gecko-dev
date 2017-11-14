@@ -39,47 +39,14 @@
 void
 nsRetrievalContextWayland::ResetMIMETypeList(void)
 {
-  int length = mMIMETypes.Length();
-  for (int i = 0; i < length; i++) {
-      free(mMIMETypes[i]);
-  }
-  mMIMETypes.Clear();
+  mTargetMIMETypes.Clear();
 }
 
 void
 nsRetrievalContextWayland::AddMIMEType(const char *aMimeType)
 {
-    mMIMETypes.AppendElement(strdup(aMimeType));
-}
-
-bool
-nsRetrievalContextWayland::HasMIMEType(const char *aMimeType)
-{
-    int length = mMIMETypes.Length();
-    for (int i = 0; i < length; i++) {
-        if(strcmp(mMIMETypes[i], aMimeType) == 0)
-            return true;
-    }
-    return false;
-}
-
-bool
-nsRetrievalContextWayland::HasMIMETypeText(void)
-{
-    // Taken from gtk_targets_include_text()
-    int length = mMIMETypes.Length();
-    for (int i = 0; i < length; i++) {
-        if(strcmp(mMIMETypes[i], "UTF8_STRING") == 0 ||
-           strcmp(mMIMETypes[i], "TEXT") == 0 ||
-           strcmp(mMIMETypes[i], "COMPOUND_TEXT") == 0 ||
-           strcmp(mMIMETypes[i], "text/plain") == 0 ||
-           strcmp(mMIMETypes[i], "text/plain;charset=utf-8") == 0 ||
-           strcmp(mMIMETypes[i], "mTextPlainLocale") == 0)
-        {
-            return true;
-        }
-    }
-    return false;
+  GdkAtom atom = gdk_atom_intern(aMimeType, FALSE);
+  mTargetMIMETypes.AppendElement(atom);
 }
 
 void
@@ -341,45 +308,30 @@ nsRetrievalContextWayland::~nsRetrievalContextWayland(void)
     g_free(mTextPlainLocale);
 }
 
-NS_IMETHODIMP
-nsRetrievalContextWayland::HasDataMatchingFlavors(const char** aFlavorList,
-    uint32_t aLength, int32_t aWhichClipboard, bool *_retval)
+GdkAtom*
+nsRetrievalContextWayland::GetTargets(int32_t aWhichClipboard,
+                                      int* aTargetNum)
 {
-    if (!aFlavorList || !_retval)
-        return NS_ERROR_NULL_POINTER;
-
-    *_retval = false;
-
-    // Walk through the provided types and try to match it to a
-    // provided type.
-    for (uint32_t i = 0; i < aLength; i++) {
-        // We special case text/unicode here.
-        if (!strcmp(aFlavorList[i], kUnicodeMime) &&
-            HasMIMETypeText()) {
-            *_retval = true;
-            break;
-        }
-        if (HasMIMEType(aFlavorList[i])) {
-            *_retval = true;
-            break;
-        }
-        // X clipboard supports image/jpeg, but we want to emulate support
-        // for image/jpg as well
-        if (!strcmp(aFlavorList[i], kJPGImageMime) &&
-            HasMIMEType(kJPEGImageMime)) {
-            *_retval = true;
-            break;
-        }
+    int length = mTargetMIMETypes.Length();
+    if (!length) {
+        *aTargetNum = 0;
+        return nullptr;
     }
 
-    return NS_OK;
+    GdkAtom* targetList = reinterpret_cast<GdkAtom*>(
+        g_malloc(sizeof(GdkAtom)*length));
+    for (int32_t j = 0; j < length; j++) {
+        targetList[j] = mTargetMIMETypes[j];
+    }
+
+    *aTargetNum = length;
+    return targetList;
 }
 
-nsresult
-nsRetrievalContextWayland::GetClipboardContent(const char* aMimeType,
-                                               int32_t aWhichClipboard,
-                                               nsIInputStream** aResult,
-                                               uint32_t* aContentLength)
+guchar*
+nsRetrievalContextWayland::WaitForClipboardContext(const char* aMimeType,
+                                                   int32_t aWhichClipboard,
+                                                   uint32_t* aContentLength)
 {
     NS_ASSERTION(mDataOffer, "Requested data without valid data offer!");
 
@@ -388,21 +340,16 @@ nsRetrievalContextWayland::GetClipboardContent(const char* aMimeType,
         // Something went wrong. We're requested to provide clipboard data
         // but we haven't got any from wayland. Looks like rhbz#1455915.
         // Return NS_ERROR_FAILURE to avoid crash.
-        return NS_ERROR_FAILURE;
+        return nullptr;
     }
 
     int pipe_fd[2];
     if (pipe(pipe_fd) == -1)
-        return NS_ERROR_FAILURE;
+        return nullptr;
 
     wl_data_offer_receive(mDataOffer, aMimeType, pipe_fd[1]);
     close(pipe_fd[1]);
     wl_display_flush(mDisplay);
-
-    nsresult rv;
-    nsCOMPtr<nsIStorageStream> storageStream;
-    nsCOMPtr<nsIBinaryOutputStream> stream;
-    int length;
 
     struct pollfd fds;
     fds.fd = pipe_fd[0];
@@ -412,36 +359,24 @@ nsRetrievalContextWayland::GetClipboardContent(const char* aMimeType,
     int ret = poll(&fds, 1, kClipboardTimeout*1000);
     if (!ret || ret == -1) {
         close(pipe_fd[0]);
-        return NS_ERROR_FAILURE;
+        return nullptr;
     }
+
+    GArray* dataStream = g_array_new(false, false, sizeof(guchar));
+    int length;
 
     #define BUFFER_SIZE 4096
-
-    NS_NewStorageStream(BUFFER_SIZE, UINT32_MAX, getter_AddRefs(storageStream));
-    nsCOMPtr<nsIOutputStream> outputStream;
-    rv = storageStream->GetOutputStream(0, getter_AddRefs(outputStream));
-    if (NS_FAILED(rv)) {
-        close(pipe_fd[0]);
-        return NS_ERROR_FAILURE;
-    }
-
     do {
         char buffer[BUFFER_SIZE];
         length = read(pipe_fd[0], buffer, sizeof(buffer));
         if (length == 0 || length == -1)
             break;
 
-        uint32_t ret;
-        rv = outputStream->Write(buffer, length, &ret);
-    } while(NS_SUCCEEDED(rv) && length == BUFFER_SIZE);
+        g_array_append_vals(dataStream, buffer, length);
+    } while(length == BUFFER_SIZE);
 
-    outputStream->Close();
     close(pipe_fd[0]);
-
-    rv = storageStream->GetLength(aContentLength);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = storageStream->NewInputStream(0, aResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    return NS_OK;
+    
+    *aContentLength = dataStream->len;
+    return reinterpret_cast<guchar*>(g_array_free(dataStream, false));
 }

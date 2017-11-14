@@ -202,6 +202,19 @@ nsRetrievalContextX11::Wait()
     return nullptr;
 }
 
+// Call this when data has been retrieved.
+void nsRetrievalContextX11::Complete(GtkSelectionData* aData)
+{
+  if (mState == INITIAL) {
+      mState = COMPLETED;
+      mData = gtk_selection_data_get_length(aData) >= 0 ?
+              gtk_selection_data_copy(aData) : nullptr;
+  } else {
+      // Already timed out
+      MOZ_ASSERT(mState == TIMED_OUT);
+  }
+}
+
 static void
 clipboard_contents_received(GtkClipboard     *clipboard,
                             GtkSelectionData *selection_data,
@@ -224,85 +237,50 @@ nsRetrievalContextX11::WaitForContents(GtkClipboard *clipboard, const char *aMim
     return static_cast<GtkSelectionData*>(Wait());
 }
 
-NS_IMETHODIMP
-nsRetrievalContextX11::HasDataMatchingFlavors(const char** aFlavorList,
-                                              uint32_t aLength,
-                                              int32_t aWhichClipboard,
-                                              bool *_retval)
+GdkAtom*
+nsRetrievalContextX11::GetTargets(int32_t aWhichClipboard, int* aTargetNum)
 {
-    if (!aFlavorList || !_retval)
-        return NS_ERROR_NULL_POINTER;
+  *aTargetNum = 0;
 
-    *_retval = false;
+  GtkClipboard *clipboard =
+      gtk_clipboard_get(GetSelectionAtom(aWhichClipboard));  
 
-    GtkClipboard *clipboard = 
-        gtk_clipboard_get(GetSelectionAtom(aWhichClipboard));
+  GtkSelectionData *selection_data = WaitForContents(clipboard, "TARGETS");
+  if (!selection_data)
+      return nullptr;
 
-    GtkSelectionData *selection_data =
-        WaitForContents(clipboard, "TARGETS");
-    if (!selection_data)
-        return NS_OK;
+  gint n_targets = 0;
+  GdkAtom *targets = nullptr;
 
-    gint n_targets = 0;
-    GdkAtom *targets = nullptr;
-
-    if (!gtk_selection_data_get_targets(selection_data,
-                                        &targets, &n_targets) ||
-        !n_targets)
-        return NS_OK;
-
-    // Walk through the provided types and try to match it to a
-    // provided type.
-    for (uint32_t i = 0; i < aLength && !*_retval; i++) {
-        // We special case text/unicode here.
-        if (!strcmp(aFlavorList[i], kUnicodeMime) &&
-            gtk_selection_data_targets_include_text(selection_data)) {
-            *_retval = true;
-            break;
-        }
-
-        for (int32_t j = 0; j < n_targets; j++) {
-            gchar *atom_name = gdk_atom_name(targets[j]);
-            if (!atom_name)
-                continue;
-
-            if (!strcmp(atom_name, aFlavorList[i]))
-                *_retval = true;
-
-            // X clipboard supports image/jpeg, but we want to emulate support
-            // for image/jpg as well
-            if (!strcmp(aFlavorList[i], kJPGImageMime) && !strcmp(atom_name, kJPEGImageMime))
-                *_retval = true;
-
-            g_free(atom_name);
-
-            if (*_retval)
-                break;
-        }
-    }
-    gtk_selection_data_free(selection_data);
-    g_free(targets);
-
-    return NS_OK;
+  if (!gtk_selection_data_get_targets(selection_data, &targets, &n_targets) ||
+      !n_targets) {
+      return nullptr;
+  }
+    
+  gtk_selection_data_free(selection_data);
+  
+  *aTargetNum = n_targets;
+  return targets;
 }
 
-nsresult
-nsRetrievalContextX11::GetClipboardContent(const char* aMimeType,
-                                           int32_t aWhichClipboard,
-                                           nsIInputStream** aResult,
-                                           uint32_t* aContentLength)
+guchar*
+nsRetrievalContextX11::WaitForClipboardContext(const char* aMimeType,
+                                               int32_t aWhichClipboard,
+                                               uint32_t* aContentLength)
 {
     GtkClipboard *clipboard;
     clipboard = gtk_clipboard_get(GetSelectionAtom(aWhichClipboard));
 
     GtkSelectionData *selectionData = WaitForContents(clipboard, aMimeType);
     if (!selectionData)
-        return NS_ERROR_FAILURE;
+        return nullptr;
 
-    *aContentLength = gtk_selection_data_get_length(selectionData);
-    NS_NewByteInputStream(aResult,
-                          (const char*)gtk_selection_data_get_data(selectionData),
-                          *aContentLength, NS_ASSIGNMENT_COPY);
+    int contentLength = gtk_selection_data_get_length(selectionData);
+    guchar* data = reinterpret_cast<guchar*>(g_malloc(sizeof(guchar)*contentLength));
+    memcpy(data, gtk_selection_data_get_data(selectionData),
+           sizeof(guchar)*contentLength);
     gtk_selection_data_free(selectionData);
-    return NS_OK;
+    
+    *aContentLength = contentLength;
+    return data;
 }

@@ -16,39 +16,30 @@
 // Default Gtk MIME for text
 #define GTK_DEFAULT_MIME_TEXT "UTF8_STRING"
 
-class nsRetrievalContext : public nsIObserver {
+class nsRetrievalContext {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIOBSERVER
+    virtual guchar* WaitForClipboardContext(const char* aMimeType,
+                                            int32_t aWhichClipboard,
+                                            uint32_t* aContentLength) = 0;
+    virtual GdkAtom* GetTargets(int32_t aWhichClipboard,
+                                int* aTargetNum) = 0;
 
-    nsRetrievalContext();
-
-    NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList,
-                                      uint32_t aLength,
-                                      int32_t aWhichClipboard,
-                                      bool *_retval) = 0;
-    NS_IMETHOD GetClipboardContent(const char* aMimeType,
-                                   int32_t aWhichClipboard,
-                                   nsIInputStream** aResult,
-                                   uint32_t* aContentLength) = 0;
-
-    // Save global clipboard content to gtk
-    void  Store(void);
+    nsRetrievalContext() {};
+    virtual ~nsRetrievalContext() {};
 
 protected:
-    virtual ~nsRetrievalContext();
-
     // Idle timeout for receiving selection and property notify events (microsec)
     static const int kClipboardTimeout;
 };
 
-class nsClipboard : public nsIClipboard
+class nsClipboard : public nsIClipboard,
+                    public nsIObserver
 {
 public:
     nsClipboard();
     
     NS_DECL_ISUPPORTS
-    
+    NS_DECL_NSIOBSERVER
     NS_DECL_NSICLIPBOARD
 
     // Make sure we are initialized, called from the factory
@@ -72,11 +63,11 @@ private:
 
     // Hang on to our owners and transferables so we can transfer data
     // when asked.
-    nsCOMPtr<nsIClipboardOwner>  mSelectionOwner;
-    nsCOMPtr<nsIClipboardOwner>  mGlobalOwner;
-    nsCOMPtr<nsITransferable>    mSelectionTransferable;
-    nsCOMPtr<nsITransferable>    mGlobalTransferable;
-    RefPtr<nsRetrievalContext>   mContext;
+    nsCOMPtr<nsIClipboardOwner>    mSelectionOwner;
+    nsCOMPtr<nsIClipboardOwner>    mGlobalOwner;
+    nsCOMPtr<nsITransferable>      mSelectionTransferable;
+    nsCOMPtr<nsITransferable>      mGlobalTransferable;
+    nsAutoPtr<nsRetrievalContext>  mContext;
 };
 
 GdkAtom GetSelectionAtom(int32_t aWhichClipboard);

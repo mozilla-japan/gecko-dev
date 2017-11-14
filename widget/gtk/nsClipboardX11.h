@@ -17,41 +17,17 @@ public:
     enum State { INITIAL, COMPLETED, TIMED_OUT };
 
     nsRetrievalContextX11();
-
-    NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList,
-                                      uint32_t aLength,
-                                      int32_t aWhichClipboard,
-                                      bool *_retval) override;
-    NS_IMETHOD GetClipboardContent(const char* aMimeType,
-                                   int32_t aWhichClipboard,
-                                   nsIInputStream** aResult,
-                                   uint32_t* aContentLength) override;
-
-    gchar* CopyRetrievedData(const gchar *aData)
-    {
-      return g_strdup(aData);
-    }
-    GtkSelectionData* CopyRetrievedData(GtkSelectionData *aData)
-    {
-      // A negative length indicates that retrieving the data failed.
-      return gtk_selection_data_get_length(aData) >= 0 ?
-          gtk_selection_data_copy(aData) : nullptr;
-    }
+    virtual guchar* WaitForClipboardContext(const char* aMimeType,
+                                            int32_t aWhichClipboard,
+                                            uint32_t* aContentLength) override;
+    virtual GdkAtom* GetTargets(int32_t aWhichClipboard,
+                                int* aTargetNum) override;
 
     // Call this when data has been retrieved.
-    template <class T> void Complete(T *aData)
-    {
-      if (mState == INITIAL) {
-          mState = COMPLETED;
-          mData = CopyRetrievedData(aData);
-      } else {
-          // Already timed out
-          MOZ_ASSERT(mState == TIMED_OUT);
-      }
-    }
-private:
+    void Complete(GtkSelectionData* aData);
     virtual ~nsRetrievalContextX11() override;
 
+private:
     GtkSelectionData* WaitForContents(GtkClipboard *clipboard,
                                       const char *aMimeType);
     /**

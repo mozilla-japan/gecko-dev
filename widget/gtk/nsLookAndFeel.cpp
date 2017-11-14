@@ -895,13 +895,9 @@ GetSystemFontInfo(GtkWidget *aWidget,
         // |size| is in pango-points, so convert to pixels.
         size *= float(gfxPlatformGtk::GetDPI()) / POINTS_PER_INCH_FLOAT;
     }
-
-    // Scale fonts up on HiDPI displays.
-    // This would be done automatically with cairo, but we manually manage
-    // the display scale for platform consistency.
-    size *= nsScreenGtk::GetGtkMonitorScaleFactor();
-
-    // |size| is now pixels
+    // |size| is now pixels but not scaled for the hidpi displays,
+    // this needs to be done in GetFontImpl where the aDevPixPerCSSPixel
+    // parameter is provided.
 
     aFontStyle->size = size;
 
@@ -1026,6 +1022,7 @@ nsLookAndFeel::GetFontImpl(FontID aID, nsString& aFontName,
 
   aFontName = *cachedFontName;
   aFontStyle = *cachedFontStyle;
+  aFontStyle.size *= aDevPixPerCSSPixel;
   return true;
 }
 

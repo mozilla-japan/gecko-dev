@@ -60,6 +60,18 @@ NS_IMPL_ISUPPORTS_INHERITED(nsNativeThemeGTK, nsNativeTheme, nsITheme,
 
 static int gLastGdkError;
 
+// Return scale factor of the monitor where the window is located
+// by the most part.
+static inline double
+GetThemeDpiScaleFactor(nsIFrame* aFrame)
+{
+  nsIWidget* rootWidget = aFrame->PresContext()->GetRootWidget();
+  if (rootWidget) {
+      return rootWidget->GetDefaultScale().scale;
+  }
+  return 1.0;
+}
+
 nsNativeThemeGTK::nsNativeThemeGTK()
 {
   if (moz_gtk_init() != MOZ_GTK_SUCCESS) {
@@ -1087,7 +1099,7 @@ nsNativeThemeGTK::GetExtraSizeForWidget(nsIFrame* aFrame, uint8_t aWidgetType,
   default:
     return false;
   }
-  gint scale = ScreenHelperGTK::GetGTKMonitorScaleFactor();
+  gint scale = GetThemeDpiScaleFactor(aFrame);
   aExtra->top *= scale;
   aExtra->right *= scale;
   aExtra->bottom *= scale;
@@ -1115,7 +1127,7 @@ nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext,
 
   gfxRect rect = presContext->AppUnitsToGfxUnits(aRect);
   gfxRect dirtyRect = presContext->AppUnitsToGfxUnits(aDirtyRect);
-  gint scaleFactor = ScreenHelperGTK::GetGTKMonitorScaleFactor();
+  gint scaleFactor = GetThemeDpiScaleFactor(aFrame);
 
   // Align to device pixels where sensible
   // to provide crisper and faster drawing.
@@ -1366,7 +1378,7 @@ nsNativeThemeGTK::GetWidgetBorder(nsDeviceContext* aContext, nsIFrame* aFrame,
     }
   }
 
-  gint scale = ScreenHelperGTK::GetGTKMonitorScaleFactor();
+  gint scale = GetThemeDpiScaleFactor(aFrame);
   aResult->top *= scale;
   aResult->right *= scale;
   aResult->bottom *= scale;
@@ -1420,7 +1432,7 @@ nsNativeThemeGTK::GetWidgetPadding(nsDeviceContext* aContext,
         aResult->left += horizontal_padding;
         aResult->right += horizontal_padding;
 
-        gint scale = ScreenHelperGTK::GetGTKMonitorScaleFactor();
+        gint scale = GetThemeDpiScaleFactor(aFrame);
         aResult->top *= scale;
         aResult->right *= scale;
         aResult->bottom *= scale;
@@ -1693,7 +1705,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsPresContext* aPresContext,
     break;
   }
 
-  *aResult = *aResult * ScreenHelperGTK::GetGTKMonitorScaleFactor();
+  *aResult = *aResult * GetThemeDpiScaleFactor(aFrame);
 
   return NS_OK;
 }

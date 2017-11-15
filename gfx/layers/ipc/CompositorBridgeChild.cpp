@@ -22,8 +22,8 @@
 #include "mozilla/layers/PaintThread.h"
 #include "mozilla/layers/PLayerTransactionChild.h"
 #include "mozilla/layers/PTextureChild.h"
-#include "mozilla/layers/TextureClient.h"// for TextureClient
-#include "mozilla/layers/TextureClientPool.h"// for TextureClientPool
+#include "mozilla/layers/TextureClient.h" // for TextureClient
+#include "mozilla/layers/TextureClientPool.h" // for TextureClientPool
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUProcessManager.h"
@@ -87,7 +87,6 @@ CompositorBridgeChild::CompositorBridgeChild(CompositorManagerChild *aManager)
   , mCanSend(false)
   , mActorDestroyed(false)
   , mFwdTransactionId(0)
-  , mDeviceResetSequenceNumber(0)
   , mMessageLoop(MessageLoop::current())
   , mProcessToken(0)
   , mSectionAllocator(nullptr)

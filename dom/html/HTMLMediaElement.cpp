@@ -100,6 +100,10 @@
 #include "MP4Decoder.h"
 #include "FrameStatistics.h"
 
+#include "nsIFrame.h"
+#include "nsDisplayList.h"
+#include "SVGObserverUtils.h"
+
 #ifdef MOZ_ANDROID_HLS_SUPPORT
 #include "HLSDecoder.h"
 #endif
@@ -1677,13 +1681,6 @@ HTMLMediaElement::SetSrcObject(DOMMediaStream* aValue)
   mSrcAttrStream = aValue;
   UpdateAudioChannelPlayingState();
   DoLoad();
-}
-
-NS_IMETHODIMP HTMLMediaElement::GetMozAutoplayEnabled(bool *aAutoplayEnabled)
-{
-  *aAutoplayEnabled = mAutoplayEnabled;
-
-  return NS_OK;
 }
 
 bool
@@ -3988,7 +3985,6 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
     mCurrentPlayRangeStart(-1.0),
     mLoadedDataFired(false),
     mAutoplaying(true),
-    mAutoplayEnabled(true),
     mPaused(true, *this),
     mStatsShowing(false),
     mAllowCasting(false),
@@ -4535,9 +4531,6 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
   mUnboundFromTree = false;
 
   if (aDocument) {
-    mAutoplayEnabled =
-      IsAutoplayEnabled() && (!aDocument || !aDocument->IsStaticDocument()) &&
-      !IsEditable();
     // The preload action depends on the value of the autoplay attribute.
     // It's value may have changed, so update it.
     UpdatePreloadAction();
@@ -5343,7 +5336,7 @@ CreateAudioTrack(AudioStreamTrack* aStreamTrack)
   nsAutoString id;
   nsAutoString label;
   aStreamTrack->GetId(id);
-  aStreamTrack->GetLabel(label);
+  aStreamTrack->GetLabel(label, CallerType::System);
 
   return MediaTrackList::CreateAudioTrack(id, NS_LITERAL_STRING("main"),
                                           label, EmptyString(), true);
@@ -5355,7 +5348,7 @@ CreateVideoTrack(VideoStreamTrack* aStreamTrack)
   nsAutoString id;
   nsAutoString label;
   aStreamTrack->GetId(id);
-  aStreamTrack->GetLabel(label);
+  aStreamTrack->GetLabel(label, CallerType::System);
 
   return MediaTrackList::CreateVideoTrack(id, NS_LITERAL_STRING("main"),
                                           label, EmptyString(),
@@ -6110,7 +6103,11 @@ bool HTMLMediaElement::CanActivateAutoplay()
   // download is controlled by the script and there is no way to evaluate
   // MediaDecoder::CanPlayThrough().
 
-  if (!HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) || !mAutoplayEnabled) {
+  if (!IsAutoplayEnabled()) {
+    return false;
+  }
+
+  if (!HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay)) {
     return false;
   }
 
@@ -6127,6 +6124,11 @@ bool HTMLMediaElement::CanActivateAutoplay()
   }
 
   if (mPausedForInactiveDocumentOrChannel) {
+    return false;
+  }
+
+  // Static document is used for print preview and printing, should not be autoplay
+  if (OwnerDoc()->IsStaticDocument()) {
     return false;
   }
 
@@ -6401,6 +6403,39 @@ void HTMLMediaElement::AddDecoderPrincipalChangeObserver(DecoderPrincipalChangeO
 bool HTMLMediaElement::RemoveDecoderPrincipalChangeObserver(DecoderPrincipalChangeObserver* aObserver)
 {
   return mDecoderPrincipalChangeObservers.RemoveElement(aObserver);
+}
+
+void
+HTMLMediaElement::Invalidate(bool aImageSizeChanged,
+                             Maybe<nsIntSize>& aNewIntrinsicSize,
+                             bool aForceInvalidate)
+{
+  nsIFrame* frame = GetPrimaryFrame();
+  if (aNewIntrinsicSize) {
+    UpdateMediaSize(aNewIntrinsicSize.value());
+    if (frame) {
+      nsPresContext* presContext = frame->PresContext();
+      nsIPresShell* presShell = presContext->PresShell();
+      presShell->FrameNeedsReflow(
+        frame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+    }
+  }
+
+  RefPtr<ImageContainer> imageContainer = GetImageContainer();
+  bool asyncInvalidate =
+    imageContainer && imageContainer->IsAsync() && !aForceInvalidate;
+  if (frame) {
+    if (aImageSizeChanged) {
+      frame->InvalidateFrame();
+    } else {
+      frame->InvalidateLayer(DisplayItemType::TYPE_VIDEO,
+                             nullptr,
+                             nullptr,
+                             asyncInvalidate ? nsIFrame::UPDATE_IS_ASYNC : 0);
+    }
+  }
+
+  SVGObserverUtils::InvalidateDirectRenderingObservers(this);
 }
 
 void HTMLMediaElement::UpdateMediaSize(const nsIntSize& aSize)

@@ -571,6 +571,10 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
     wl_callback_add_listener(mFrameCallback, &frame_listener, this);
     mFrameCallbackSurface = waylandSurface;
 
+    // Let the wayland know of the current scaling factor for the hdpi
+    // displays
+    wl_surface_set_buffer_scale(waylandSurface, mWidget->GdkScaleFactor());
+
     // There's no pending frame callback so we can draw immediately
     // and create frame callback for possible subsequent drawing.
     mFrontBuffer->Attach(waylandSurface);

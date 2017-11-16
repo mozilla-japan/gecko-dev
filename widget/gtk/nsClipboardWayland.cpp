@@ -339,7 +339,6 @@ nsRetrievalContextWayland::WaitForClipboardContext(const char* aMimeType,
         // TODO
         // Something went wrong. We're requested to provide clipboard data
         // but we haven't got any from wayland. Looks like rhbz#1455915.
-        // Return NS_ERROR_FAILURE to avoid crash.
         return nullptr;
     }
 

@@ -243,8 +243,9 @@ public:
 
   // Called after the MediaStream we're playing rendered a frame to aContainer
   // with a different principalHandle than the previous frame.
-  void PrincipalHandleChangedForVideoFrameContainer(VideoFrameContainer* aContainer,
-                                                    const PrincipalHandle& aNewPrincipalHandle);
+  void PrincipalHandleChangedForVideoFrameContainer(
+    VideoFrameContainer* aContainer,
+    const PrincipalHandle& aNewPrincipalHandle) override;
 
   // Dispatch events
   virtual void DispatchAsyncEvent(const nsAString& aName) final override;
@@ -329,6 +330,10 @@ public:
   // Like UpdateMediaSize, but only updates the size if no size has yet
   // been set.
   void UpdateInitialMediaSize(const nsIntSize& aSize);
+
+  void Invalidate(bool aImageSizeChanged,
+                  Maybe<nsIntSize>& aNewIntrinsicSize,
+                  bool aForceInvalidate) override;
 
   // Returns the CanPlayStatus indicating if we can handle the
   // full MIME type including the optional codecs parameter.
@@ -675,11 +680,6 @@ public:
   bool ContainsRestrictedContent();
 
   void NotifyWaitingForKey() override;
-
-  bool MozAutoplayEnabled() const
-  {
-    return mAutoplayEnabled;
-  }
 
   already_AddRefed<DOMMediaStream> CaptureAudio(ErrorResult& aRv,
                                                 MediaStreamGraph* aGraph);
@@ -1565,10 +1565,6 @@ protected:
   // 'mAutoplaying' flag, which indicates whether the current playback
   // is a result of the autoplay attribute.
   bool mAutoplaying;
-
-  // Indicates whether |autoplay| will actually autoplay based on the pref
-  // media.autoplay.enabled
-  bool mAutoplayEnabled;
 
   // Playback of the video is paused either due to calling the
   // 'Pause' method, or playback not yet having started.

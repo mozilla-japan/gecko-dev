@@ -502,7 +502,7 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
     mFullScreenDamage = true;
   } else {
     // Former buffer has different size from the new request. Only resize
-    // the new buffer and leave geck to render new whole content.
+    // the new buffer and leave gecko to render new whole content.
     mFrontBuffer->Resize(aWidth, aHeight);
   }
 
@@ -551,7 +551,7 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
     }
   }
 
-  // Frame callback is always connected to concrete wl_surface. When the surface
+  // Frame callback is always connected to actual wl_surface. When the surface
   // is unmapped/deleted the frame callback is newer called. Unfortunatelly
   // we don't know if the frame callback is not going to be called.
   // But our mozcontainer code deletes wl_surface when the GdkWindow is hidden

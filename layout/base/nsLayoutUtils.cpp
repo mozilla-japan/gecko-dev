@@ -475,6 +475,20 @@ MayHaveAnimationOfProperty(EffectSet* effects, nsCSSPropertyID aProperty)
   return true;
 }
 
+static bool
+MayHaveAnimationOfProperty(const nsIFrame* aFrame, nsCSSPropertyID aProperty)
+{
+  switch (aProperty) {
+    case eCSSProperty_transform:
+      return aFrame->MayHaveTransformAnimation();
+    case eCSSProperty_opacity:
+      return aFrame->MayHaveOpacityAnimation();
+    default:
+      MOZ_ASSERT_UNREACHABLE("unexpected property");
+      return false;
+  }
+}
+
 bool
 nsLayoutUtils::HasAnimationOfProperty(EffectSet* aEffectSet,
                                       nsCSSPropertyID aProperty)
@@ -496,7 +510,18 @@ bool
 nsLayoutUtils::HasAnimationOfProperty(const nsIFrame* aFrame,
                                       nsCSSPropertyID aProperty)
 {
-  return HasAnimationOfProperty(EffectSet::GetEffectSet(aFrame), aProperty);
+  if (!MayHaveAnimationOfProperty(aFrame, aProperty)) {
+    return false;
+  }
+
+  return HasMatchingAnimations(aFrame,
+    [&aProperty](KeyframeEffectReadOnly& aEffect)
+    {
+      return (aEffect.IsInEffect() || aEffect.IsCurrent()) &&
+             aEffect.HasAnimationOfProperty(aProperty);
+    }
+  );
+
 }
 
 bool
@@ -543,10 +568,10 @@ GetSuitableScale(float aMaxScale, float aMinScale,
 static inline void
 UpdateMinMaxScale(const nsIFrame* aFrame,
                   const AnimationValue& aValue,
-                  gfxSize& aMinScale,
-                  gfxSize& aMaxScale)
+                  Size& aMinScale,
+                  Size& aMaxScale)
 {
-  gfxSize size = aValue.GetScaleValue(aFrame);
+  Size size = aValue.GetScaleValue(aFrame);
   aMaxScale.width = std::max<float>(aMaxScale.width, size.width);
   aMaxScale.height = std::max<float>(aMaxScale.height, size.height);
   aMinScale.width = std::min<float>(aMinScale.width, size.width);
@@ -555,10 +580,9 @@ UpdateMinMaxScale(const nsIFrame* aFrame,
 
 static void
 GetMinAndMaxScaleForAnimationProperty(const nsIFrame* aFrame,
-                                      nsTArray<RefPtr<dom::Animation>>&
-                                        aAnimations,
-                                      gfxSize& aMaxScale,
-                                      gfxSize& aMinScale)
+                                      nsTArray<RefPtr<dom::Animation>>& aAnimations,
+                                      Size& aMaxScale,
+                                      Size& aMinScale)
 {
   for (dom::Animation* anim : aAnimations) {
     // This method is only expected to be passed animations that are running on
@@ -597,15 +621,15 @@ GetMinAndMaxScaleForAnimationProperty(const nsIFrame* aFrame,
   }
 }
 
-gfxSize
+Size
 nsLayoutUtils::ComputeSuitableScaleForAnimation(const nsIFrame* aFrame,
                                                 const nsSize& aVisibleSize,
                                                 const nsSize& aDisplaySize)
 {
-  gfxSize maxScale(std::numeric_limits<gfxFloat>::min(),
-                   std::numeric_limits<gfxFloat>::min());
-  gfxSize minScale(std::numeric_limits<gfxFloat>::max(),
-                   std::numeric_limits<gfxFloat>::max());
+  Size maxScale(std::numeric_limits<float>::min(),
+                std::numeric_limits<float>::min());
+  Size minScale(std::numeric_limits<float>::max(),
+                std::numeric_limits<float>::max());
 
   nsTArray<RefPtr<dom::Animation>> compositorAnimations =
     EffectCompositor::GetAnimationsForCompositor(aFrame,
@@ -613,15 +637,15 @@ nsLayoutUtils::ComputeSuitableScaleForAnimation(const nsIFrame* aFrame,
   GetMinAndMaxScaleForAnimationProperty(aFrame, compositorAnimations,
                                         maxScale, minScale);
 
-  if (maxScale.width == std::numeric_limits<gfxFloat>::min()) {
+  if (maxScale.width == std::numeric_limits<float>::min()) {
     // We didn't encounter a transform
-    return gfxSize(1.0, 1.0);
+    return Size(1.0, 1.0);
   }
 
-  return gfxSize(GetSuitableScale(maxScale.width, minScale.width,
-                                  aVisibleSize.width, aDisplaySize.width),
-                 GetSuitableScale(maxScale.height, minScale.height,
-                                  aVisibleSize.height, aDisplaySize.height));
+  return Size(GetSuitableScale(maxScale.width, minScale.width,
+                               aVisibleSize.width, aDisplaySize.width),
+              GetSuitableScale(maxScale.height, minScale.height,
+                               aVisibleSize.height, aDisplaySize.height));
 }
 
 bool

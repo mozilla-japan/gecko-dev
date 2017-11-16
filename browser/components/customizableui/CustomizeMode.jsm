@@ -893,22 +893,12 @@ CustomizeMode.prototype = {
       wrapper.setAttribute("flex", aNode.getAttribute("flex"));
     }
 
-    if (aPlace == "panel") {
-      if (aNode.classList.contains(CustomizableUI.WIDE_PANEL_CLASS)) {
-        wrapper.setAttribute("haswideitem", "true");
-      } else if (wrapper.hasAttribute("haswideitem")) {
-        wrapper.removeAttribute("haswideitem");
-      }
-    }
-
     let removable = aPlace == "palette" || CustomizableUI.isWidgetRemovable(aNode);
     wrapper.setAttribute("removable", removable);
 
-    if (AppConstants.platform == "win") {
-      // Allow touch events to initiate dragging in customize mode.
-      // This is only supported on Windows for now.
-      wrapper.setAttribute("touchdownstartsdrag", "true");
-    }
+    // Allow touch events to initiate dragging in customize mode.
+    // This is only supported on Windows for now.
+    wrapper.setAttribute("touchdownstartsdrag", "true");
 
     let contextMenuAttrName = "";
     if (aNode.getAttribute("context")) {
@@ -2262,8 +2252,7 @@ CustomizeMode.prototype = {
     let originArea = this._getCustomizableParent(draggedWrapper);
     let positionManager = DragPositionManager.getManagerForArea(targetArea);
     let draggedSize = this._getDragItemSize(aDragOverNode, aDraggedItem);
-    let isWide = aDraggedItem.classList.contains(CustomizableUI.WIDE_PANEL_CLASS);
-    positionManager.insertPlaceholder(targetArea, aDragOverNode, isWide, draggedSize,
+    positionManager.insertPlaceholder(targetArea, aDragOverNode, draggedSize,
                                       originArea == targetArea);
   },
 
@@ -2373,7 +2362,7 @@ CustomizeMode.prototype = {
       dragX -= bounds.left;
       dragY -= bounds.top;
       // Find the closest node:
-      targetNode = positionManager.find(aAreaElement, dragX, dragY, aDraggedItemId);
+      targetNode = positionManager.find(aAreaElement, dragX, dragY);
     }
     return targetNode || aEvent.target;
   },

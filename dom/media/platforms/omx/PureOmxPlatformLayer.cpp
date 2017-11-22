@@ -179,6 +179,7 @@ PureOmxPlatformLayer::FindPortDefinition(OMX_DIRTYPE aType,
       return NS_OK;
     }
   }
+  return NS_ERROR_FAILURE;
 }
 
 nsresult

@@ -413,6 +413,9 @@ pref("media.wmf.deblacklisting-for-telemetry-in-gpu-process", true);
 pref("media.wmf.play-stand-alone", true);
 pref("media.wmf.use-sync-texture", true);
 #endif
+#if defined(MOZ_WIDGET_GTK)
+pref("media.pdm-omx.enabled", false);
+#endif
 #if defined(MOZ_FFMPEG)
 #if defined(XP_MACOSX)
 pref("media.ffmpeg.enabled", false);

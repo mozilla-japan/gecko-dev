@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+toolkit = CONFIG['MOZ_WIDGET_TOOLKIT']
+
 EXPORTS += [
     'OmxDecoderModule.h',
 ]
@@ -20,6 +22,11 @@ LOCAL_INCLUDES += [
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
+
+if toolkit == 'gtk3':
+    UNIFIED_SOURCES += [
+        'PureOmxPlatformLayer.cpp',
+    ]
 
 FINAL_LIBRARY = 'xul'
 

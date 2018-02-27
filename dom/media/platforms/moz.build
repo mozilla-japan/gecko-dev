@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+toolkit = CONFIG['MOZ_WIDGET_TOOLKIT']
+
 EXPORTS += [
     'agnostic/AgnosticDecoderModule.h',
     'agnostic/DummyMediaDataDecoder.h',
@@ -68,6 +70,14 @@ if CONFIG['MOZ_AV1']:
     ]
     UNIFIED_SOURCES += [
         'agnostic/AOMDecoder.cpp',
+    ]
+
+if toolkit == 'gtk3':
+    EXPORTS += [
+        'omx/OmxCoreLibLinker.h',
+    ]
+    UNIFIED_SOURCES += [
+        'omx/OmxCoreLibLinker.cpp',
     ]
 
 if CONFIG['MOZ_APPLEMEDIA']:

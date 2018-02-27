@@ -125,6 +125,9 @@ private:
 #endif
   // WebRTC
   DECL_MEDIA_PREF("media.navigator.mediadatadecoder_enabled", MediaDataDecoderEnabled, bool, false);
+#ifdef MOZ_WIDGET_GTK
+  DECL_MEDIA_PREF("media.pdm-omx.enabled",                    PDMOmxEnabled, bool, false);
+#endif
 #ifdef MOZ_FFMPEG
   DECL_MEDIA_PREF("media.ffmpeg.enabled",                     PDMFFmpegEnabled, bool, true);
   DECL_MEDIA_PREF("media.libavcodec.allow-obsolete",          LibavcodecAllowObsolete, bool, false);

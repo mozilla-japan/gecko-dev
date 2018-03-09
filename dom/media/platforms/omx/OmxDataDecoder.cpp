@@ -279,24 +279,33 @@ OmxDataDecoder::DoAsyncShutdown()
              self->mWatchManager.Shutdown();
              self->mOmxLayer = nullptr;
              self->mMediaDataHelper = nullptr;
-
              self->mShuttingDown = false;
-             self->mOmxTaskQueue->BeginShutdown();
-             self->mOmxTaskQueue->AwaitShutdownAndIdle();
-             self->mShutdownPromise.Resolve(true, __func__);
+             self->FinalizeAsyncShutdown();
            },
            [self] () {
              self->mOmxLayer->Shutdown();
              self->mWatchManager.Shutdown();
              self->mOmxLayer = nullptr;
              self->mMediaDataHelper = nullptr;
-
              self->mShuttingDown = false;
-             self->mOmxTaskQueue->BeginShutdown();
-             self->mOmxTaskQueue->AwaitShutdownAndIdle();
-             self->mShutdownPromise.Resolve(true, __func__);
+             self->FinalizeAsyncShutdown();
            });
   return mShutdownPromise.Ensure(__func__);
+}
+
+void
+OmxDataDecoder::FinalizeAsyncShutdown()
+{
+  LOG("");
+  RefPtr<OmxDataDecoder> self = this;
+  InvokeAsync(mReaderTaskQueue, __func__,
+              [self] () {
+                // Since all tasks are already done, it will return immediately.
+                self->mOmxTaskQueue->BeginShutdown();
+                self->mOmxTaskQueue->AwaitShutdownAndIdle();
+                self->mShutdownPromise.Resolve(true, __func__);
+                return ShutdownPromise::CreateAndResolve(true, __func__);
+              });
 }
 
 void

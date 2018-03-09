@@ -140,6 +140,8 @@ protected:
 
   RefPtr<ShutdownPromise> DoAsyncShutdown();
 
+  void FinalizeAsyncShutdown();
+
   RefPtr<FlushPromise> DoFlush();
 
   void FlushComplete(OMX_COMMANDTYPE aCommandType);

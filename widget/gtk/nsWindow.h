@@ -578,6 +578,9 @@ private:
 
     void CleanLayerManagerRecursive();
 
+    virtual bool SynchronouslyRepaintOnResize() override
+    { return false; }
+
     virtual int32_t RoundsWidgetCoordinatesTo() override;
 
     /**

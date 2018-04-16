@@ -652,8 +652,13 @@ WebGLContext::CreateAndInitGL(bool forceEnabled,
     }
 
     const gl::SurfaceCaps baseCaps = BaseCaps(mOptions, this);
+#ifdef MOZ_WAYLAND
+    // Our target does not support robustness buffer extensions.
+    gl::CreateContextFlags flags = (gl::CreateContextFlags::NO_VALIDATION);
+#else
     gl::CreateContextFlags flags = (gl::CreateContextFlags::NO_VALIDATION |
                                     gl::CreateContextFlags::PREFER_ROBUSTNESS);
+#endif
     bool tryNativeGL = true;
     bool tryANGLE = false;
 

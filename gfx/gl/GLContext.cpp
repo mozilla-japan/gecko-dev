@@ -552,7 +552,7 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
     MOZ_ASSERT(minorVer < 10);
     mVersion = majorVer*100 + minorVer*10;
     if (mVersion < 200)
-        return false;
+        mVersion = 200; // Restore old behavior.
 
     ////
 

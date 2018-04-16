@@ -1703,6 +1703,14 @@ GLContext::InitExtensions()
             MarkExtensionUnsupported(OES_EGL_image_external);
         }
 #endif
+#ifdef MOZ_WAYLAND
+        if (Vendor() == GLVendor::Imagination &&
+            Renderer() == GLRenderer::SGX544MP)
+        {
+            MarkExtensionUnsupported(OES_EGL_image);
+            MarkExtensionUnsupported(OES_EGL_image_external);
+        }
+#endif
 
         if (Vendor() == GLVendor::ARM &&
             (Renderer() == GLRenderer::Mali400MP ||

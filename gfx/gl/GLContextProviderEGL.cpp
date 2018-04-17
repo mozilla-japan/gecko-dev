@@ -478,7 +478,7 @@ GLContextEGL::CreateGLContext(CreateContextFlags flags,
 
     std::vector<EGLint> robustness_attribs;
     std::vector<EGLint> rbab_attribs; // RBAB: Robust Buffer Access Behavior
-    if (flags & CreateContextFlags::PREFER_ROBUSTNESS) {
+    if (true) {
         if (sEGLLibrary.IsExtensionSupported(GLLibraryEGL::EXT_create_context_robustness)) {
             robustness_attribs = required_attribs;
             robustness_attribs.push_back(LOCAL_EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT);

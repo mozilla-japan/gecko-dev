@@ -26,6 +26,14 @@ namespace gl {
 #include "GLContextProviderImpl.h"
 #undef GL_CONTEXT_PROVIDER_NAME
 
+#ifdef MOZ_GL_PROVIDER
+  #define GL_CONTEXT_PROVIDER_NAME MOZ_GL_PROVIDER
+  #include "GLContextProviderImpl.h"
+  #undef GL_CONTEXT_PROVIDER_NAME
+  #define GL_CONTEXT_PROVIDER_DEFAULT MOZ_GL_PROVIDER
+
+#else // MOZ_GL_PROVIDER
+
 #ifdef XP_WIN
   #define GL_CONTEXT_PROVIDER_NAME GLContextProviderWGL
   #include "GLContextProviderImpl.h"
@@ -64,12 +72,7 @@ namespace gl {
 #endif
 #endif
 
-#ifdef MOZ_GL_PROVIDER
-  #define GL_CONTEXT_PROVIDER_NAME MOZ_GL_PROVIDER
-  #include "GLContextProviderImpl.h"
-  #undef GL_CONTEXT_PROVIDER_NAME
-  #define GL_CONTEXT_PROVIDER_DEFAULT MOZ_GL_PROVIDER
-#endif
+#endif // MOZ_GL_PROVIDER
 
 #ifdef GL_CONTEXT_PROVIDER_DEFAULT
   typedef GL_CONTEXT_PROVIDER_DEFAULT GLContextProvider;

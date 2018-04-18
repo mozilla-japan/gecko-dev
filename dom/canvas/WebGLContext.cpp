@@ -1431,7 +1431,7 @@ WebGLContext::ForceClearFramebufferWithDefaultValues(const GLbitfield clearBits,
     }
 
     if (initializeColorBuffer) {
-        DoColorMask(0x0f);
+        //DoColorMask(0x0f);
 
         if (fakeNoAlpha) {
             gl->fClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1503,7 +1503,7 @@ WebGLContext::OnEndOfFrame() const
 void
 WebGLContext::BlitBackbufferToCurDriverFB() const
 {
-    DoColorMask(0x0f);
+    //DoColorMask(0x0f);
 
     if (mScissorTestEnabled) {
         gl->fDisable(LOCAL_GL_SCISSOR_TEST);

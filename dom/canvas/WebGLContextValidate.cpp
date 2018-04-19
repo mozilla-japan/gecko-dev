@@ -737,8 +737,11 @@ WebGLContext::InitAndValidateGL(FailureReason* const out_failReason)
            sizeof(mGenericVertexAttrib0Data));
 
     mFakeVertexAttrib0BufferObject = 0;
-
+#ifdef MOZ_WAYLAND
+    mNeedsIndexValidation = false;
+#else
     mNeedsIndexValidation = !gl->IsSupported(gl::GLFeature::robust_buffer_access_behavior);
+#endif
     switch (gfxPrefs::WebGLForceIndexValidation()) {
     case -1:
         mNeedsIndexValidation = false;

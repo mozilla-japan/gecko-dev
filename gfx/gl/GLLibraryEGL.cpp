@@ -602,6 +602,12 @@ GLLibraryEGL::EnsureInitialized(bool forceAccel, nsACString* const out_failureId
         }
     }
 
+#ifdef MOZ_WAYLAND
+    // RZ/G1M drivers say this extension exists, but we can't
+    // actually use created EGL Context for WebGL.
+    MarkExtensionUnsupported(KHR_create_context);
+#endif
+
     if (IsExtensionSupported(KHR_stream)) {
         const GLLibraryLoader::SymLoadStruct streamSymbols[] = {
             SYMBOL(CreateStreamKHR),

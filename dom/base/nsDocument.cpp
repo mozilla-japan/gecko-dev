@@ -3471,6 +3471,43 @@ nsDocument::IsWebAnimationsEnabled(CallerType aCallerType)
          nsContentUtils::AnimationsAPICoreEnabled();
 }
 
+bool
+nsDocument::IsBrowserElementEnabled(JSContext* aCx, JSObject* aObject)
+{
+  JS::Rooted<JSObject*> obj(aCx, aObject);
+
+  if (!Preferences::GetBool("dom.mozBrowserFramesEnabled")) {
+    return false;
+  }
+
+  if (nsContentUtils::IsCallerChrome()) {
+    return true;
+  }
+
+  if (!Preferences::GetBool("dom.mozBrowserFramesEnabledForContent")) {
+    return false;
+  }
+
+  // Check for the browser permission.
+  JSAutoCompartment ac(aCx, obj);
+  nsCOMPtr<nsPIDOMWindowInner> window = xpc::WindowGlobalOrNull(aObject);
+
+  if (window) {
+    nsresult rv;
+    nsCOMPtr<nsIPermissionManager> permMgr =
+      do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, false);
+
+    uint32_t perm;
+    rv = permMgr->TestPermissionFromWindow(window, "browser", &perm);
+    NS_ENSURE_SUCCESS(rv, false);
+
+    return perm == nsIPermissionManager::ALLOW_ACTION;
+  }
+
+  return false;
+}
+
 DocumentTimeline*
 nsDocument::Timeline()
 {

@@ -8,7 +8,6 @@
 #include "application.ini.h"
 #include "mozilla/Bootstrap.h"
 #include "nsXPCOMPrivate.h"
-#include "nsStringGlue.h"
 #include "nsCOMPtr.h"
 #include "nsIFile.h"
 #include "BinaryPath.h"
@@ -60,7 +59,7 @@ int main(int argc, const char* argv[])
 {
   char exePath[MAXPATHLEN];
 
-  nsresult rv = mozilla::BinaryPath::Get(argv[0], exePath);
+  nsresult rv = mozilla::BinaryPath::Get(exePath);
   if (NS_FAILED(rv)) {
     Output("Couldn't calculate the application directory.\n");
     return 255;

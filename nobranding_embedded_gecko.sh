@@ -104,4 +104,9 @@ grep -E -e "href=\"http:\/\/www.mozilla.org\/.*\"" -r browser/base/content/ | \
   while read path; do $sed -i -r -e "s/href=\"http:\/\/*.www.mozilla.org\/\"/href=\"https:\/\/www.renesas.com\/jp\/ja\/\"/g" \
                                  -e "s/href=\"https:\/\/donate.mozilla.org\/.*utm_content=firefox_about\"/href=\"\"/g" \
                                  -e "s/href=\"http:\/\/www.mozilla.org\/contribute\/\"/href=\"https:\/\/mp.renesas.com\/en-us\/rzg\/community\/index.html\"/g" \
+                                 -e "s/href=\"https:\/\/www.mozilla.org\/privacy\/\"/href=\"https:\/\/www.renesas.com\/us\/en\/privacy.html\"/g" \
                      "$path"; done
+
+# Remove help button in about:preferences
+$sed -i -r -e ":lbl1;N;s/<hbox class=\"help-button\" pack=\"center\">.*<\/hbox>.*<\/label>.*<\/hbox>//;b lbl1;" \
+                     browser/components/preferences/in-content/preferences.xul

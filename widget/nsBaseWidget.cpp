@@ -131,6 +131,8 @@ int32_t nsIWidget::sPointerIdCounter = 0;
 // milliseconds.
 const uint32_t kAsyncDragDropTimeout = 1000;
 
+static nsBaseWidget *sSingleCompositorWidget = nullptr;
+
 namespace mozilla {
 namespace widget {
 
@@ -278,6 +280,9 @@ void nsBaseWidget::DestroyCompositor() {
     RefPtr<CompositorSession> session = mCompositorSession.forget();
     session->Shutdown();
   }
+
+  if (sSingleCompositorWidget == this)
+    sSingleCompositorWidget = nullptr;
 }
 
 // This prevents the layer manager from starting a new transaction during
@@ -1335,6 +1340,8 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight) {
     gfxPlatform::GetPlatform()->NotifyCompositorCreated(
         mLayerManager->GetCompositorBackendType());
   }
+
+  sSingleCompositorWidget = this;
 }
 
 void nsBaseWidget::NotifyCompositorSessionLost(CompositorSession* aSession) {
